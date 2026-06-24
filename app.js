@@ -18,6 +18,7 @@ let state = {
   tab: "quiz",
   quizFilter: "全て",
   quizMode: "choice",  // choice | spell
+  quizDir:  "es-ja",   // es-ja | ja-es
 
   // クイズ
   queue: [],
@@ -67,7 +68,10 @@ function normalizeText(str) {
 }
 
 function checkSpelling(input, correct) {
-  return normalizeText(input) === normalizeText(correct);
+  // スペイン語はアクセント無視、日本語はそのまま比較
+  const isSpanish = /[a-zA-Z]/.test(correct);
+  if (isSpanish) return normalizeText(input) === normalizeText(correct);
+  return input.trim() === correct.trim();
 }
 
 
@@ -174,8 +178,9 @@ function nextQuestion() {
 function submitSpell() {
   if (state.spellChecked) return;
   state.spellChecked = true;
-  const current  = state.queue[state.qIndex];
-  const isCorrect = checkSpelling(state.spellAnswer, current.es);
+  const current   = state.queue[state.qIndex];
+  const answerWord = state.quizDir === "es-ja" ? current.ja : current.es;
+  const isCorrect  = checkSpelling(state.spellAnswer, answerWord);
   if (isCorrect) state.sessionRight++;
   else           state.sessionWrong++;
   const prev = state.stats[String(current.id)] ?? { correct: 0, wrong: 0 };
@@ -258,13 +263,15 @@ function switchTab(tab) {
 /* ── クイズタブ ── */
 function renderQuiz() {
   const panel = document.getElementById("tab-quiz");
-  const { words, queue, qIndex, quizDone, quizFilter, quizMode,
+  const { words, queue, qIndex, quizDone, quizFilter, quizMode, quizDir,
           choices, selected, showResult,
           sessionRight, sessionWrong, spellAnswer, spellChecked } = state;
 
-  // モード切替
+  // モード・方向切替ボタン
   document.getElementById("quiz-mode-choice").classList.toggle("active", quizMode === "choice");
   document.getElementById("quiz-mode-spell").classList.toggle("active", quizMode === "spell");
+  document.getElementById("quiz-dir-es-ja").classList.toggle("active", quizDir === "es-ja");
+  document.getElementById("quiz-dir-ja-es").classList.toggle("active", quizDir === "ja-es");
 
   // カテゴリフィルター
   const cats = ["全て", ...Array.from(new Set(words.map(w => w.category)))];
@@ -339,11 +346,16 @@ function renderQuiz() {
 
   // ── スペルモード ──
   if (quizMode === "spell") {
-    const isCorrectSpell = spellChecked && checkSpelling(spellAnswer, current.es);
+    const questionWord = quizDir === "es-ja" ? current.es : current.ja;
+    const answerWord   = quizDir === "es-ja" ? current.ja : current.es;
+    const hint         = quizDir === "es-ja" ? "次のスペイン語を日本語でタイプしてください" : "次の日本語をスペイン語でタイプしてください";
+    const placeholder  = quizDir === "es-ja" ? "日本語を入力..." : "スペイン語を入力...";
+
+    const isCorrectSpell = spellChecked && checkSpelling(spellAnswer, answerWord);
     const spellResult = spellChecked
       ? (isCorrectSpell
-        ? `<div class="result-bar ok"><p class="result-text"><span class="ok-text">✓ 正解！ ${current.es}</span></p><button class="next-btn" id="next-btn">次へ →</button></div>`
-        : `<div class="result-bar ng"><p class="result-text"><span class="ng-text">✗ 不正解　正解：${current.es}</span></p><button class="next-btn" id="next-btn">次へ →</button></div>`)
+        ? `<div class="result-bar ok"><p class="result-text"><span class="ok-text">✓ 正解！ ${answerWord}</span></p><button class="next-btn" id="next-btn">次へ →</button></div>`
+        : `<div class="result-bar ng"><p class="result-text"><span class="ng-text">✗ 不正解　正解：${answerWord}</span></p><button class="next-btn" id="next-btn">次へ →</button></div>`)
       : "";
 
     content.innerHTML = `
@@ -357,16 +369,17 @@ function renderQuiz() {
         </div>
       </div>
       <div class="question-card">
-        <p class="question-hint">次の日本語をスペイン語でタイプしてください</p>
-        <p class="question-word">${current.ja}</p>
+        <p class="question-hint">${hint}</p>
+        <p class="question-word">${questionWord}</p>
         <div class="question-badges">
           <span class="badge badge-cat">${current.category}</span>
           ${isWeak ? '<span class="badge badge-weak">🔥 苦手</span>' : ""}
+          ${quizDir === "ja-es" ? "" : ""}
         </div>
       </div>
       <div class="spell-input-wrap">
         <input id="spell-input" class="spell-input" type="text"
-          placeholder="スペイン語を入力..."
+          placeholder="${placeholder}"
           value="${spellAnswer}"
           ${spellChecked ? "disabled" : ""}
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
@@ -387,13 +400,19 @@ function renderQuiz() {
     return;
   }
 
+  // 方向に応じて問題文・選択肢・正解を切り替え
+  const questionWord  = quizDir === "es-ja" ? current.es : current.ja;
+  const answerLabel   = quizDir === "es-ja" ? (c) => c.ja : (c) => c.es;
+  const correctAnswer = quizDir === "es-ja" ? current.ja : current.es;
+  const hint          = quizDir === "es-ja" ? "次のスペイン語の意味は？" : "次の日本語をスペイン語で選んでください";
+
   const choicesHtml = choices.map(c => {
     let cls = "choice-btn";
     if (showResult) {
       if (String(c.id) === String(current.id))  cls += " correct";
       else if (String(c.id) === String(selected)) cls += " wrong";
     }
-    return `<button class="${cls}" data-id="${c.id}" ${showResult ? "disabled" : ""}>${c.ja}</button>`;
+    return `<button class="${cls}" data-id="${c.id}" ${showResult ? "disabled" : ""}>${answerLabel(c)}</button>`;
   }).join("");
 
   const resultHtml = showResult ? (() => {
@@ -402,13 +421,17 @@ function renderQuiz() {
       <div class="result-bar ${ok ? "ok" : "ng"}">
         <p class="result-text">
           ${ok
-            ? `<span class="ok-text">✓ 正解！ ${current.ja}</span>`
-            : `<span class="ng-text">✗ 不正解　正解：${current.ja}</span>`
+            ? `<span class="ok-text">✓ 正解！ ${correctAnswer}</span>`
+            : `<span class="ng-text">✗ 不正解　正解：${correctAnswer}</span>`
           }
         </p>
         <button class="next-btn" id="next-btn">次へ →</button>
       </div>`;
   })() : "";
+
+  const speakBtnHtml = quizDir === "es-ja"
+    ? '<button class="speak-btn" id="speak-btn" title="もう一度聞く">🔊</button>'
+    : "";
 
   content.innerHTML = `
     <div class="progress-wrap">
@@ -422,11 +445,12 @@ function renderQuiz() {
     </div>
 
     <div class="question-card">
-      <p class="question-hint">次のスペイン語の意味は？</p>
-      <p class="question-word">${current.es}</p>
+      <p class="question-hint">${hint}</p>
+      <p class="question-word">${questionWord}</p>
       <div class="question-badges">
         <span class="badge badge-cat">${current.category}</span>
         ${isWeak ? '<span class="badge badge-weak">🔥 苦手</span>' : ""}
+        ${speakBtnHtml}
       </div>
     </div>
 
@@ -443,8 +467,37 @@ function renderQuiz() {
   const nextBtn = document.getElementById("next-btn");
   if (nextBtn) nextBtn.addEventListener("click", nextQuestion);
 
-  // 4択モード：問題表示時に自動読み上げ（回答前のみ）
-  if (!showResult) speakSpanish(current.es);
+  // es-jaのときだけ自動読み上げ
+  if (!showResult && quizDir === "es-ja") speakSpanish(current.es);
+
+  // 1〜4キーで選択肢を選ぶ＋Enterで次へ
+  const onKeyQuiz = (e) => {
+    if (state.quizMode !== "choice") return;
+    if (e.key === "Enter" && state.showResult) {
+      document.removeEventListener("keydown", onKeyQuiz);
+      nextQuestion();
+      return;
+    }
+    const idx = parseInt(e.key) - 1;
+    if (!state.showResult && idx >= 0 && idx < state.choices.length) {
+      document.removeEventListener("keydown", onKeyQuiz);
+      handleAnswer(state.choices[idx].id);
+    }
+  };
+  document.addEventListener("keydown", onKeyQuiz);
+
+  // 数字キーのヒントを表示
+  if (!showResult) {
+    const grid = document.querySelector(".choices-grid");
+    if (grid) {
+      grid.querySelectorAll(".choice-btn").forEach((btn, i) => {
+        const label = document.createElement("span");
+        label.className = "key-hint";
+        label.textContent = i + 1;
+        btn.prepend(label);
+      });
+    }
+  }
 }
 
 /* ── 単語帳タブ ── */
@@ -596,6 +649,15 @@ document.addEventListener("DOMContentLoaded", () => {
     state.newJa  = "";
     state.newCat = CATEGORIES[0];
     renderWordForm();
+  });
+
+  // クイズ方向切替ボタン
+  document.querySelectorAll(".dir-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.quizDir = btn.dataset.dir;
+      startQuiz();
+      renderQuiz();
+    });
   });
 
   // クイズモード切替ボタン
