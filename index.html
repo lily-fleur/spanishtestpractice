@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>EspañolQuiz</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -35,6 +35,118 @@
         </div>
 
         <!-- タブ -->
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="quiz">クイズ</button>
+          <button class="tab-btn"        data-tab="words">単語帳</button>
+          <button class="tab-btn"        data-tab="sheets">スプシ</button>
+          <button class="tab-btn"        data-tab="stats">成績</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main>
+
+      <!-- クイズタブ -->
+      <div id="tab-quiz" class="tab-panel active">
+        <div class="quiz-dir-switch">
+          <button id="quiz-dir-es-ja" class="dir-btn active" data-dir="es-ja">🇪🇸 → 🇯🇵</button>
+          <button id="quiz-dir-ja-es" class="dir-btn"        data-dir="ja-es">🇯🇵 → 🇪🇸</button>
+        </div>
+        <div class="quiz-mode-switch">
+          <button id="quiz-mode-choice" class="mode-btn active" data-mode="choice">4択</button>
+          <button id="quiz-mode-spell"  class="mode-btn"        data-mode="spell">スペル</button>
+        </div>
+        <div id="quiz-filters" class="cat-filters"></div>
+        <div id="quiz-content"></div>
+      </div>
+
+      <!-- 単語帳タブ -->
+      <div id="tab-words" class="tab-panel">
+        <div class="form-card">
+          <div class="form-title" id="form-title">＋ 単語を追加</div>
+          <div class="form-fields">
+            <input  id="input-es"  class="form-input"  type="text" placeholder="スペイン語（例: el gato）" />
+            <input  id="input-ja"  class="form-input"  type="text" placeholder="日本語（例: 猫）" />
+            <select id="input-cat" class="form-select"></select>
+            <div class="form-actions">
+              <button id="save-btn"   class="save-btn">追加</button>
+              <button id="cancel-btn" class="cancel-btn" style="display:none">キャンセル</button>
+            </div>
+          </div>
+        </div>
+        <div id="word-list" class="word-list"></div>
+      </div>
+
+      <!-- スプシタブ -->
+      <div id="tab-sheets" class="tab-panel">
+        <div class="form-card">
+          <div class="form-title">📊 Googleスプレッドシートから読み込む</div>
+          <p class="sheets-hint">スプシを「ファイル → 共有 → ウェブに公開」してから使ってください</p>
+          <div class="form-fields">
+            <div class="sheets-field-label">シートURL（自動入力済み）</div>
+            <input id="sheets-url" class="form-input" type="text" value="https://docs.google.com/spreadsheets/d/1M9Qfifg-e7M_5j7VfxwUMTDYikn8PsKob6mXSKo-dUg" readonly style="opacity:0.6;font-size:11px" />
+            <div class="sheets-field-label">シート名（例: Sheet1）</div>
+            <input id="sheets-sheetname" class="form-input" type="text" placeholder="Sheet1" value="Sheet1" />
+            <div class="sheets-field-label">読み込み方法</div>
+            <div class="import-mode">
+              <label><input type="radio" name="import-mode" value="merge" checked /> 追加（既存の単語を残す）</label>
+              <label><input type="radio" name="import-mode" value="replace" /> 置き換え（既存の単語を削除）</label>
+            </div>
+            <button id="sheets-import-btn" class="save-btn">📥 読み込む</button>
+            <div id="sheets-status" class="sheets-status" style="display:none"></div>
+          </div>
+        </div>
+        <div class="sheets-note">
+          <p>📋 スプシのフォーマット</p>
+          <p>A列：スペイン語　B列：日本語　C列：カテゴリ</p>
+          <p>1行目はヘッダー行として無視されます</p>
+        </div>
+      </div>
+
+      <!-- 成績タブ -->
+      <div id="tab-stats" class="tab-panel">
+        <!-- 全体サマリー -->
+        <div class="stats-summary">
+          <div class="stats-title">📊 全体成績</div>
+          <div class="stats-boxes">
+            <div class="stats-box">
+              <div class="stats-box-num" id="stat-total" style="color:#c8dce8">0</div>
+              <div class="stats-box-lbl">総問題数</div>
+            </div>
+            <div class="stats-box">
+              <div class="stats-box-num" id="stat-correct" style="color:#27ae60">0</div>
+              <div class="stats-box-lbl">正解数</div>
+            </div>
+            <div class="stats-box">
+              <div class="stats-box-num" id="stat-wrong" style="color:#e74c3c">0</div>
+              <div class="stats-box-lbl">不正解数</div>
+            </div>
+          </div>
+          <div class="stats-rate-row">
+            <span>正答率</span>
+            <span class="stats-rate-val" id="stat-pct">–</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="stat-bar" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- カテゴリ別 -->
+        <div class="section-title yellow">📂 カテゴリ別</div>
+        <div id="cat-stat-list" class="cat-stat-list"></div>
+
+        <!-- 苦手ランキング -->
+        <div class="section-title red">🔥 苦手単語 TOP5</div>
+        <div id="weak-list" class="weak-list"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>        <!-- タブ -->
         <div class="tabs">
           <button class="tab-btn active" data-tab="quiz">クイズ</button>
           <button class="tab-btn"        data-tab="words">単語帳</button>
