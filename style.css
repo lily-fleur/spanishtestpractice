@@ -9,13 +9,16 @@ html, body {
   background: #0f1923;
   color: #fff;
   height: 100%;
-  overflow-x: hidden;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 #app {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   height: 100dvh;
+  overflow: hidden;
 }
 
 header {
@@ -26,6 +29,7 @@ main {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
 }
 
 /* ── アニメーション ── */
