@@ -571,3 +571,19 @@ main {
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
 }
+
+/* ── スピーカーボタン ── */
+.speak-btn {
+  background: transparent;
+  border: 1px solid #3a5068;
+  border-radius: 20px;
+  color: #7f8c8d;
+  font-size: 14px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.speak-btn:hover {
+  border-color: #F39C12;
+  color: #F39C12;
+}
