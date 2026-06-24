@@ -30,6 +30,7 @@ main {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* ── アニメーション ── */
@@ -122,7 +123,7 @@ header {
 main {
   max-width: 640px;
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: 12px 16px;
   box-sizing: border-box;
   width: 100%;
 }
@@ -132,10 +133,10 @@ main {
 /* ── カテゴリフィルター ── */
 .cat-filters {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
-  padding-bottom: 8px;
-  margin-bottom: 20px;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
   scrollbar-width: none;
 }
 .cat-btn {
@@ -154,7 +155,7 @@ main {
 .cat-btn.active { background: #C0392B; color: #fff; }
 
 /* ── プログレスバー ── */
-.progress-wrap { margin-bottom: 16px; }
+.progress-wrap { margin-bottom: 10px; }
 .progress-meta {
   display: flex;
   justify-content: space-between;
@@ -180,10 +181,10 @@ main {
 /* ── 問題カード ── */
 .question-card {
   background: linear-gradient(135deg, #1e2d3d 0%, #243447 100%);
-  border-radius: 20px;
+  border-radius: 16px;
   border: 1px solid #3a5068;
-  padding: 24px;
-  margin-bottom: 20px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
   position: relative;
   overflow: hidden;
 }
@@ -198,9 +199,10 @@ main {
 .question-hint { color: #7f8c8d; font-size: 11px; margin-bottom: 8px; }
 .question-word {
   font-family: 'Playfair Display', serif;
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: 1px;
+  margin: 4px 0;
 }
 .question-badges { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
 .badge {
@@ -216,14 +218,14 @@ main {
 .choices-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 .choice-btn {
   width: 100%;
-  padding: 16px 12px;
+  padding: 12px 8px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.3px;
   border: 2px solid #3a5068;
@@ -257,7 +259,7 @@ main {
 /* ── 結果バー ── */
 .result-bar {
   border-radius: 12px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -541,11 +543,11 @@ main {
 .quiz-mode-switch {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 .mode-btn {
   flex: 1;
-  padding: 10px 0;
+  padding: 8px 0;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 700;
@@ -615,11 +617,11 @@ main {
 .quiz-dir-switch {
   display: flex;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .dir-btn {
   flex: 1;
-  padding: 8px 0;
+  padding: 6px 0;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 700;
