@@ -351,52 +351,92 @@ function renderQuiz() {
     const hint         = quizDir === "es-ja" ? "次のスペイン語を日本語でタイプしてください" : "次の日本語をスペイン語でタイプしてください";
     const placeholder  = quizDir === "es-ja" ? "日本語を入力..." : "スペイン語を入力...";
 
-    const isCorrectSpell = spellChecked && checkSpelling(spellAnswer, answerWord);
-    const spellResult = spellChecked
-      ? (isCorrectSpell
-        ? `<div class="result-bar ok"><p class="result-text"><span class="ok-text">✓ 正解！ ${answerWord}</span></p><button class="next-btn" id="next-btn">次へ →</button></div>`
-        : `<div class="result-bar ng"><p class="result-text"><span class="ng-text">✗ 不正解　正解：${answerWord}</span></p><button class="next-btn" id="next-btn">次へ →</button></div>`)
-      : "";
-
-    content.innerHTML = `
-      <div class="progress-wrap">
-        <div class="progress-meta">
-          <span>問題 ${qIndex + 1} / ${queue.length}</span>
-          <span class="score">✓ ${sessionRight}　✗ ${sessionWrong}</span>
-        </div>
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" style="width:${pct}%"></div>
-        </div>
-      </div>
-      <div class="question-card">
-        <p class="question-hint">${hint}</p>
-        <p class="question-word">${questionWord}</p>
-        <div class="question-badges">
-          <span class="badge badge-cat">${current.category}</span>
-          ${isWeak ? '<span class="badge badge-weak">🔥 苦手</span>' : ""}
-          ${quizDir === "ja-es" ? "" : ""}
-        </div>
-      </div>
-      <div class="spell-input-wrap">
-        <input id="spell-input" class="spell-input" type="text"
-          placeholder="${placeholder}"
-          value="${spellAnswer}"
-          ${spellChecked ? "disabled" : ""}
-          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-        ${!spellChecked ? '<button class="spell-check-btn" id="spell-check-btn">確認</button>' : ""}
-      </div>
-      ${spellResult}
-    `;
-
+    // 未回答フェーズ
     if (!spellChecked) {
+      content.innerHTML = `
+        <div class="progress-wrap">
+          <div class="progress-meta">
+            <span>問題 ${qIndex + 1} / ${queue.length}</span>
+            <span class="score">✓ ${sessionRight}　✗ ${sessionWrong}</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <div class="question-card">
+          <p class="question-hint">${hint}</p>
+          <p class="question-word">${questionWord}</p>
+          <div class="question-badges">
+            <span class="badge badge-cat">${current.category}</span>
+            ${isWeak ? '<span class="badge badge-weak">🔥 苦手</span>' : ""}
+          </div>
+        </div>
+        <div class="spell-input-wrap">
+          <input id="spell-input" class="spell-input" type="text"
+            placeholder="${placeholder}"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          <button class="spell-check-btn" id="spell-check-btn">確認</button>
+        </div>
+      `;
       const inp = document.getElementById("spell-input");
       inp.focus();
       inp.addEventListener("input", e => { state.spellAnswer = e.target.value; });
-      inp.addEventListener("keydown", e => { if (e.key === "Enter") submitSpell(); });
+      let isComposing = false;
+      inp.addEventListener("compositionstart", () => { isComposing = true; });
+      inp.addEventListener("compositionend",   () => { isComposing = false; });
+      inp.addEventListener("keydown", e => {
+        if (e.key === "Enter" && !isComposing) {
+          e.preventDefault();
+          submitSpell();
+        }
+      });
       document.getElementById("spell-check-btn").addEventListener("click", submitSpell);
+
+    // 回答済みフェーズ（Enter1回待ってから次へ）
+    } else {
+      const isCorrectSpell = checkSpelling(spellAnswer, answerWord);
+      content.innerHTML = `
+        <div class="progress-wrap">
+          <div class="progress-meta">
+            <span>問題 ${qIndex + 1} / ${queue.length}</span>
+            <span class="score">✓ ${sessionRight}　✗ ${sessionWrong}</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <div class="question-card">
+          <p class="question-hint">${hint}</p>
+          <p class="question-word">${questionWord}</p>
+          <div class="question-badges">
+            <span class="badge badge-cat">${current.category}</span>
+            ${isWeak ? '<span class="badge badge-weak">🔥 苦手</span>' : ""}
+          </div>
+        </div>
+        <div class="spell-input-wrap">
+          <input class="spell-input" type="text" value="${spellAnswer}" disabled
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        </div>
+        <div class="result-bar ${isCorrectSpell ? "ok" : "ng"}">
+          <p class="result-text">
+            ${isCorrectSpell
+              ? `<span class="ok-text">✓ 正解！ ${answerWord}</span>`
+              : `<span class="ng-text">✗ 不正解　正解：${answerWord}</span>`}
+          </p>
+          <button class="next-btn" id="next-btn">次へ →</button>
+        </div>
+      `;
+      document.getElementById("next-btn").addEventListener("click", nextQuestion);
+      // setTimeoutで登録を遅らせることで確認EnterがそのままここにこないようにEする
+      setTimeout(() => {
+        document.addEventListener("keydown", function onEnter(e) {
+          if (e.key === "Enter") {
+            document.removeEventListener("keydown", onEnter);
+            nextQuestion();
+          }
+        });
+      }, 100);
     }
-    const nextBtn = document.getElementById("next-btn");
-    if (nextBtn) nextBtn.addEventListener("click", nextQuestion);
     return;
   }
 
