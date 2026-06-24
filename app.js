@@ -70,6 +70,18 @@ function checkSpelling(input, correct) {
   return normalizeText(input) === normalizeText(correct);
 }
 
+
+// ── 音声読み上げ ──────────────────────────────────────────────
+function speakSpanish(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "es-ES";
+  utter.rate = 0.9;
+  utter.pitch = 1;
+  window.speechSynthesis.speak(utter);
+}
+
 // ── ユーティリティ ────────────────────────────────────────────
 function shuffle(arr) {
   const a = [...arr];
@@ -426,8 +438,13 @@ function renderQuiz() {
   document.querySelectorAll(".choice-btn").forEach(btn => {
     btn.addEventListener("click", () => handleAnswer(btn.dataset.id));
   });
+  const speakBtn = document.getElementById("speak-btn");
+  if (speakBtn) speakBtn.addEventListener("click", () => speakSpanish(current.es));
   const nextBtn = document.getElementById("next-btn");
   if (nextBtn) nextBtn.addEventListener("click", nextQuestion);
+
+  // 4択モード：問題表示時に自動読み上げ（回答前のみ）
+  if (!showResult) speakSpanish(current.es);
 }
 
 /* ── 単語帳タブ ── */
