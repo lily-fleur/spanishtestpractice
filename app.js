@@ -351,7 +351,7 @@ function renderQuiz() {
     const hint         = quizDir === "es-ja" ? "次のスペイン語を日本語でタイプしてください" : "次の日本語をスペイン語でタイプしてください";
     const placeholder  = quizDir === "es-ja" ? "日本語を入力..." : "スペイン語を入力...";
 
-    // 未回答フェーズ
+    // 未回答フェーズ（結果エリアも最初から確保してレイアウトずれを防ぐ）
     if (!spellChecked) {
       content.innerHTML = `
         <div class="progress-wrap">
@@ -377,6 +377,7 @@ function renderQuiz() {
             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
           <button class="spell-check-btn" id="spell-check-btn">確認</button>
         </div>
+        <div class="result-bar-placeholder"></div>
       `;
       const inp = document.getElementById("spell-input");
       inp.focus();
@@ -391,6 +392,9 @@ function renderQuiz() {
         }
       });
       document.getElementById("spell-check-btn").addEventListener("click", submitSpell);
+
+      // スペルモード：es-jaのとき問題文（スペイン語）を読み上げ
+      if (quizDir === "es-ja") speakSpanish(current.es);
 
     // 回答済みフェーズ（Enter1回待ってから次へ）
     } else {
@@ -426,6 +430,8 @@ function renderQuiz() {
           <button class="next-btn" id="next-btn">次へ →</button>
         </div>
       `;
+      // 回答後はキーボードを閉じてスクロールを防ぐ
+      document.activeElement && document.activeElement.blur();
       document.getElementById("next-btn").addEventListener("click", nextQuestion);
       // setTimeoutで登録を遅らせることで確認EnterがそのままここにこないようにEする
       setTimeout(() => {
