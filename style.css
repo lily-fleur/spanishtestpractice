@@ -652,3 +652,9 @@ main {
   vertical-align: middle;
   line-height: 1.4;
 }
+
+/* ── スペル結果プレースホルダー（レイアウトずれ防止） ── */
+.result-bar-placeholder {
+  height: 44px;
+  border-radius: 12px;
+}
