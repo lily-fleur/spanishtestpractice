@@ -231,6 +231,11 @@ function startEdit(id) {
   state.newJa  = w.ja;
   state.newCat = w.category;
   renderWordForm();
+  // フォームまでスクロール
+  setTimeout(() => {
+    const formCard = document.querySelector(".form-card");
+    if (formCard) formCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 50);
 }
 
 // ── レンダリング ──────────────────────────────────────────────
@@ -396,25 +401,28 @@ function renderQuiz() {
       const inp = document.getElementById("spell-input");
       inp.focus();
       inp.addEventListener("input", e => { state.spellAnswer = e.target.value; });
+
+      // スマホ対応：compositionend後にEnterが来ない場合もあるのでkeyupで拾う
       let isComposing = false;
       inp.addEventListener("compositionstart", () => { isComposing = true; });
       inp.addEventListener("compositionend",   () => { isComposing = false; });
-      inp.addEventListener("keydown", e => {
-        if (e.key === "Enter" && !isComposing) {
-          e.preventDefault();
-          submitSpell();
-        }
+      inp.addEventListener("keyup", e => {
+        if (e.key === "Enter" && !isComposing) submitSpell();
       });
+      inp.addEventListener("keydown", e => {
+        if (e.key === "Enter" && !isComposing) e.preventDefault();
+      });
+
       document.getElementById("spell-check-btn").addEventListener("click", submitSpell);
       // es-jaのとき問題文（スペイン語）を読み上げ
       if (quizDir === "es-ja") speakSpanish(current.es);
     } else {
-      // 回答済み：次へボタン＋Enterで次へ
+      // 回答済み：次へボタン＋Enterで次へ（PC用）
       document.getElementById("next-btn").addEventListener("click", nextQuestion);
       setTimeout(() => {
-        document.addEventListener("keydown", function onEnterNext(e) {
+        document.addEventListener("keyup", function onEnterNext(e) {
           if (e.key === "Enter") {
-            document.removeEventListener("keydown", onEnterNext);
+            document.removeEventListener("keyup", onEnterNext);
             nextQuestion();
           }
         });
