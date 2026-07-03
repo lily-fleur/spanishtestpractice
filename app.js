@@ -424,14 +424,15 @@ function renderQuiz() {
           ${isWeak ? '<span class="badge badge-weak">🔥 苦手</span>' : ""}
         </div>
       </div>
-      <div class="spell-input-wrap">
+      <form id="spell-form" class="spell-input-wrap" action="javascript:void(0)">
         <input id="spell-input" class="spell-input" type="text"
           placeholder="${placeholder}"
           value="${spellAnswer}"
           ${spellChecked ? "disabled" : ""}
+          enterkeyhint="done"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-        ${!spellChecked ? '<button class="spell-check-btn" id="spell-check-btn">確認</button>' : ""}
-      </div>
+        ${!spellChecked ? '<button type="submit" class="spell-check-btn" id="spell-check-btn">確認</button>' : ""}
+      </form>
       <div class="result-bar ${spellChecked ? (isCorrectSpell ? "ok" : "ng") : "hidden-placeholder"}">
         ${spellChecked ? `
           <p class="result-text">
@@ -445,27 +446,29 @@ function renderQuiz() {
     `;
 
     if (!spellChecked) {
-      // 未回答：入力・確認
-      const inp = document.getElementById("spell-input");
+      // 未回答：form submitで確認（スマホのGo/確定キーも確実に発火する）
+      const inp  = document.getElementById("spell-input");
+      const form = document.getElementById("spell-form");
       inp.focus();
       inp.addEventListener("input", e => { state.spellAnswer = e.target.value; });
 
-      // スマホ対応：compositionend後にEnterが来ない場合もあるのでkeyupで拾う
+      // IME変換中のsubmitは無視する
       let isComposing = false;
       inp.addEventListener("compositionstart", () => { isComposing = true; });
-      inp.addEventListener("compositionend",   () => { isComposing = false; });
-      inp.addEventListener("keyup", e => {
-        if (e.key === "Enter" && !isComposing) submitSpell();
-      });
-      inp.addEventListener("keydown", e => {
-        if (e.key === "Enter" && !isComposing) e.preventDefault();
+      inp.addEventListener("compositionend",   () => {
+        // compositionendの直後にsubmitが発火するのを防ぐため少し待つ
+        setTimeout(() => { isComposing = false; }, 100);
       });
 
-      document.getElementById("spell-check-btn").addEventListener("click", submitSpell);
+      form.addEventListener("submit", e => {
+        e.preventDefault();
+        if (!isComposing) submitSpell();
+      });
+
       // es-jaのとき問題文（スペイン語）を読み上げ
       if (quizDir === "es-ja") speakSpanish(current.es);
     } else {
-      // 回答済み：次へボタン＋Enterで次へ（PC用）
+      // 回答済み：次へボタン＋Enterで次へ（PC用、500ms遅延でスマホの遅延イベントを回避）
       document.getElementById("next-btn").addEventListener("click", nextQuestion);
       setTimeout(() => {
         document.addEventListener("keyup", function onEnterNext(e) {
@@ -474,7 +477,7 @@ function renderQuiz() {
             nextQuestion();
           }
         });
-      }, 200);
+      }, 500);
     }
     return;
   }
