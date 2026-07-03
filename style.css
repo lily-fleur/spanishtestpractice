@@ -130,11 +130,10 @@ main {
 /* ── カテゴリフィルター ── */
 .cat-filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow-x: auto;
   padding-bottom: 6px;
   margin-bottom: 10px;
-  scrollbar-width: none;
 }
 .cat-btn {
   padding: 6px 14px;
@@ -723,3 +722,16 @@ main {
   transition: transform 0.15s;
 }
 .review-btn:active { transform: scale(0.97); }
+
+/* ── カテゴリ単語数バッジ ── */
+.cat-count {
+  display: inline-block;
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
+  font-size: 10px;
+  padding: 0 6px;
+  margin-left: 2px;
+}
+.cat-btn.active .cat-count {
+  background: rgba(255,255,255,0.25);
+}
