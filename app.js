@@ -29,6 +29,10 @@ let state = {
   sessionRight: 0,
   sessionWrong: 0,
   quizDone: false,
+  streak: 0,
+  maxStreak: 0,
+  wrongIds: [],
+  reviewMode: false,
   spellAnswer: "",
   spellChecked: false,
 
@@ -122,14 +126,23 @@ function buildQueue(filterCat) {
   return shuffle(repeated);
 }
 
-function startQuiz() {
-  state.queue        = buildQueue(state.quizFilter);
+function startQuiz(reviewQueue) {
+  if (reviewQueue && reviewQueue.length > 0) {
+    state.queue = shuffle(reviewQueue);
+    state.reviewMode = true;
+  } else {
+    state.queue = buildQueue(state.quizFilter);
+    state.reviewMode = false;
+  }
   state.qIndex       = 0;
   state.selected     = null;
   state.showResult   = false;
   state.sessionRight = 0;
   state.sessionWrong = 0;
   state.quizDone     = false;
+  state.streak       = 0;
+  state.maxStreak    = 0;
+  state.wrongIds     = [];
   state.spellAnswer  = "";
   state.spellChecked = false;
   generateChoices();
@@ -149,8 +162,15 @@ function handleAnswer(choiceId) {
 
   const current = state.queue[state.qIndex];
   const isCorrect = String(choiceId) === String(current.id);
-  if (isCorrect) state.sessionRight++;
-  else           state.sessionWrong++;
+  if (isCorrect) {
+    state.sessionRight++;
+    state.streak++;
+    state.maxStreak = Math.max(state.maxStreak, state.streak);
+  } else {
+    state.sessionWrong++;
+    state.streak = 0;
+    if (!state.wrongIds.includes(String(current.id))) state.wrongIds.push(String(current.id));
+  }
 
   const prev = state.stats[String(current.id)] ?? { correct: 0, wrong: 0 };
   state.stats[String(current.id)] = {
@@ -181,8 +201,15 @@ function submitSpell() {
   const current   = state.queue[state.qIndex];
   const answerWord = state.quizDir === "es-ja" ? current.ja : current.es;
   const isCorrect  = checkSpelling(state.spellAnswer, answerWord);
-  if (isCorrect) state.sessionRight++;
-  else           state.sessionWrong++;
+  if (isCorrect) {
+    state.sessionRight++;
+    state.streak++;
+    state.maxStreak = Math.max(state.maxStreak, state.streak);
+  } else {
+    state.sessionWrong++;
+    state.streak = 0;
+    if (!state.wrongIds.includes(String(current.id))) state.wrongIds.push(String(current.id));
+  }
   const prev = state.stats[String(current.id)] ?? { correct: 0, wrong: 0 };
   state.stats[String(current.id)] = {
     correct: prev.correct + (isCorrect ? 1 : 0),
@@ -308,12 +335,21 @@ function renderQuiz() {
   if (quizDone) {
     const total = sessionRight + sessionWrong;
     const pct   = total === 0 ? 0 : Math.round(sessionRight / total * 100);
-    const emoji = pct >= 80 ? "🎉" : "💪";
+    const emoji = pct === 100 ? "🏆" : pct >= 80 ? "🎉" : "💪";
+    const wrongCount = state.wrongIds.length;
+    const perfectMsg = pct === 100 ? '<p class="done-perfect">全問正解！お見事です 🌟</p>' : "";
+
+    // 間違えた単語オブジェクトを取得
+    const reviewWords = state.wrongIds
+      .map(id => state.words.find(w => String(w.id) === String(id)))
+      .filter(Boolean);
+
     content.innerHTML = `
       <div class="done-card">
         <div class="done-icon">${emoji}</div>
         <h2>セッション完了！</h2>
-        <p class="done-sub">${queue.length}問中</p>
+        <p class="done-sub">${queue.length}問中${state.reviewMode ? "（復習モード）" : ""}</p>
+        ${perfectMsg}
         <div class="done-scores">
           <div class="done-score-box">
             <div class="done-score-num" style="color:#27ae60">${sessionRight}</div>
@@ -328,11 +364,22 @@ function renderQuiz() {
             <div class="done-score-lbl">正答率</div>
           </div>
         </div>
-        <button class="retry-btn" id="retry-btn">もう一度</button>
+        <div class="done-streak">🔥 最高 ${state.maxStreak} 連続正解</div>
+        <div class="done-actions">
+          ${wrongCount > 0 ? `<button class="review-btn" id="review-btn">間違えた${wrongCount}問を復習</button>` : ""}
+          <button class="retry-btn" id="retry-btn">もう一度</button>
+        </div>
       </div>`;
+
     document.getElementById("retry-btn").addEventListener("click", () => {
       startQuiz(); renderQuiz();
     });
+    const reviewBtn = document.getElementById("review-btn");
+    if (reviewBtn) {
+      reviewBtn.addEventListener("click", () => {
+        startQuiz(reviewWords); renderQuiz();
+      });
+    }
     return;
   }
 
@@ -362,7 +409,7 @@ function renderQuiz() {
       <div class="progress-wrap">
         <div class="progress-meta">
           <span>問題 ${qIndex + 1} / ${queue.length}</span>
-          <span class="score">✓ ${sessionRight}　✗ ${sessionWrong}</span>
+          <span class="score">${state.streak >= 2 ? `<span class="streak-badge">🔥${state.streak}</span> ` : ""}✓ ${sessionRight}　✗ ${sessionWrong}</span>
         </div>
         <div class="progress-bar-bg">
           <div class="progress-bar-fill" style="width:${pct}%"></div>
@@ -468,7 +515,7 @@ function renderQuiz() {
     <div class="progress-wrap">
       <div class="progress-meta">
         <span>問題 ${qIndex + 1} / ${queue.length}</span>
-        <span class="score">✓ ${sessionRight}　✗ ${sessionWrong}</span>
+        <span class="score">${state.streak >= 2 ? `<span class="streak-badge">🔥${state.streak}</span> ` : ""}✓ ${sessionRight}　✗ ${sessionWrong}</span>
       </div>
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" style="width:${pct}%"></div>
