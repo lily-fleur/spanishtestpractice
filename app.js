@@ -305,11 +305,12 @@ function renderQuiz() {
   document.getElementById("quiz-dir-es-ja").classList.toggle("active", quizDir === "es-ja");
   document.getElementById("quiz-dir-ja-es").classList.toggle("active", quizDir === "ja-es");
 
-  // カテゴリフィルター
+  // カテゴリフィルター（単語数つき）
   const cats = ["全て", ...Array.from(new Set(words.map(w => w.category)))];
-  const filterHtml = cats.map(c => `
-    <button class="cat-btn${c === quizFilter ? " active" : ""}" data-cat="${c}">${c}</button>
-  `).join("");
+  const filterHtml = cats.map(c => {
+    const count = c === "全て" ? words.length : words.filter(w => w.category === c).length;
+    return `<button class="cat-btn${c === quizFilter ? " active" : ""}" data-cat="${c}">${c} <span class="cat-count">${count}</span></button>`;
+  }).join("");
   document.getElementById("quiz-filters").innerHTML = filterHtml;
   document.querySelectorAll(".cat-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -708,7 +709,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadData();
 
   document.getElementById("loading").style.display = "none";
-  document.getElementById("app").style.display     = "block";
+  document.getElementById("app").style.display     = "flex";
   updateWordCount();
 
   // タブボタン
