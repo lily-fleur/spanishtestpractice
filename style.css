@@ -752,3 +752,19 @@ main {
   margin-left: 4px;
   animation: streakPop 0.3s ease;
 }
+
+/* ── 例文モード ── */
+.example-sentence {
+  font-family: 'Playfair Display', serif;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.3px;
+  margin: 4px 0;
+}
+.example-ja {
+  font-size: 12px;
+  color: #7f8c8d;
+  margin-top: 6px;
+  line-height: 1.5;
+}
