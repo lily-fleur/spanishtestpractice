@@ -81,6 +81,32 @@ function checkSpelling(input, correct) {
 }
 
 
+
+// ── グローバルキーハンドラ（初期化時に1個だけ登録・累積なし）──
+function globalQuizKeyHandler(e) {
+  if (state.tab !== "quiz" || state.quizDone) return;
+  if (state.queue.length === 0) return;
+
+  if (state.quizMode === "spell") {
+    // スペル：確認から400ms以上たったEnterで次へ（確認Enterとの連鎖防止）
+    if (e.key === "Enter" && state.spellChecked &&
+        Date.now() - (state.spellCheckedAt || 0) > 400) {
+      nextQuestion();
+    }
+    return;
+  }
+
+  // 4択・例文モード
+  if (e.key === "Enter" && state.showResult) {
+    nextQuestion();
+    return;
+  }
+  const idx = parseInt(e.key) - 1;
+  if (!state.showResult && !isNaN(idx) && idx >= 0 && idx < state.choices.length) {
+    handleAnswer(state.choices[idx].id);
+  }
+}
+
 // ── 音声読み上げ ──────────────────────────────────────────────
 function speakSpanish(text) {
   if (!window.speechSynthesis) return;
@@ -182,12 +208,9 @@ function buildQueue(filterCat) {
   sortByWrong(due);
   sortByWrong(fresh);
 
-  // 期日到来 → 新規 → 学習済みの順で並べ、苦手はダブりで強化
+  // 期日到来 → 新規 → 学習済みの順で並べる（ダブりなし：1単語1問）
   const ordered = [...due, ...fresh, ...shuffle(learning)];
-  const repeated = ordered.flatMap((w, i) =>
-    (i < 3 && getWrongRate(w.id) > 0.4) ? [w, w] : [w]
-  );
-  return shuffle(repeated);
+  return shuffle(ordered);
 }
 
 function startQuiz(reviewQueue) {
@@ -267,6 +290,7 @@ function nextQuestion() {
 function submitSpell() {
   if (state.spellChecked) return;
   state.spellChecked = true;
+  state.spellCheckedAt = Date.now();
   const current   = state.queue[state.qIndex];
   const answerWord = state.quizDir === "es-ja" ? current.ja : current.es;
   const isCorrect  = checkSpelling(state.spellAnswer, answerWord);
@@ -373,6 +397,10 @@ function renderQuiz() {
   document.getElementById("quiz-mode-choice").classList.toggle("active", quizMode === "choice");
   document.getElementById("quiz-mode-spell").classList.toggle("active", quizMode === "spell");
   document.getElementById("quiz-mode-example").classList.toggle("active", quizMode === "example");
+
+  // 例文モードは方向の概念がないため方向スイッチを非表示
+  const dirSwitch = document.querySelector(".quiz-dir-switch");
+  if (dirSwitch) dirSwitch.style.display = quizMode === "example" ? "none" : "flex";
   document.getElementById("quiz-dir-es-ja").classList.toggle("active", quizDir === "es-ja");
   document.getElementById("quiz-dir-ja-es").classList.toggle("active", quizDir === "ja-es");
 
@@ -563,21 +591,6 @@ function renderQuiz() {
     // 回答後に例文全文を読み上げ
     if (showResult) speakSpanish(current.example);
 
-    // 1〜4キー＋Enter
-    const onKeyExample = (e) => {
-      if (state.quizMode !== "example") return;
-      if (e.key === "Enter" && state.showResult) {
-        document.removeEventListener("keydown", onKeyExample);
-        nextQuestion();
-        return;
-      }
-      const idx = parseInt(e.key) - 1;
-      if (!state.showResult && idx >= 0 && idx < state.choices.length) {
-        document.removeEventListener("keydown", onKeyExample);
-        handleAnswer(state.choices[idx].id);
-      }
-    };
-    document.addEventListener("keydown", onKeyExample);
     return;
   }
 
@@ -653,16 +666,8 @@ function renderQuiz() {
       // es-jaのとき問題文（スペイン語）を読み上げ
       if (quizDir === "es-ja") speakSpanish(current.es);
     } else {
-      // 回答済み：次へボタン＋Enterで次へ（PC用、500ms遅延でスマホの遅延イベントを回避）
+      // 回答済み：次へボタン（Enterはグローバルハンドラが処理）
       document.getElementById("next-btn").addEventListener("click", nextQuestion);
-      setTimeout(() => {
-        document.addEventListener("keyup", function onEnterNext(e) {
-          if (e.key === "Enter") {
-            document.removeEventListener("keyup", onEnterNext);
-            nextQuestion();
-          }
-        });
-      }, 500);
     }
     return;
   }
@@ -737,22 +742,6 @@ function renderQuiz() {
 
   // es-jaのときだけ自動読み上げ
   if (!showResult && quizDir === "es-ja") speakSpanish(current.es);
-
-  // 1〜4キーで選択肢を選ぶ＋Enterで次へ
-  const onKeyQuiz = (e) => {
-    if (state.quizMode !== "choice") return;
-    if (e.key === "Enter" && state.showResult) {
-      document.removeEventListener("keydown", onKeyQuiz);
-      nextQuestion();
-      return;
-    }
-    const idx = parseInt(e.key) - 1;
-    if (!state.showResult && idx >= 0 && idx < state.choices.length) {
-      document.removeEventListener("keydown", onKeyQuiz);
-      handleAnswer(state.choices[idx].id);
-    }
-  };
-  document.addEventListener("keydown", onKeyQuiz);
 
   // 数字キーのヒントを表示
   if (!showResult) {
@@ -918,6 +907,9 @@ document.addEventListener("DOMContentLoaded", () => {
     state.newCat = CATEGORIES[0];
     renderWordForm();
   });
+
+  // グローバルキーハンドラ（1個だけ）
+  document.addEventListener("keydown", globalQuizKeyHandler);
 
   // クイズ方向切替ボタン
   document.querySelectorAll(".dir-btn").forEach(btn => {
