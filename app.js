@@ -17,7 +17,7 @@ let state = {
   stats: {},           // { [wordId]: { correct, wrong } }
   tab: "quiz",
   quizFilter: "全て",
-  quizMode: "choice",  // choice | spell
+  quizMode: "choice",  // choice | spell | example
   quizDir:  "es-ja",   // es-ja | ja-es
 
   // クイズ
@@ -198,6 +198,10 @@ function startQuiz(reviewQueue) {
     state.queue = buildQueue(state.quizFilter);
     state.reviewMode = false;
   }
+  // 例文モードは例文がある単語のみ
+  if (state.quizMode === "example") {
+    state.queue = state.queue.filter(w => w.example);
+  }
   state.qIndex       = 0;
   state.selected     = null;
   state.showResult   = false;
@@ -368,6 +372,7 @@ function renderQuiz() {
   // モード・方向切替ボタン
   document.getElementById("quiz-mode-choice").classList.toggle("active", quizMode === "choice");
   document.getElementById("quiz-mode-spell").classList.toggle("active", quizMode === "spell");
+  document.getElementById("quiz-mode-example").classList.toggle("active", quizMode === "example");
   document.getElementById("quiz-dir-es-ja").classList.toggle("active", quizDir === "es-ja");
   document.getElementById("quiz-dir-ja-es").classList.toggle("active", quizDir === "ja-es");
 
@@ -464,6 +469,117 @@ function renderQuiz() {
   const wrongRate = totalS > 0 ? s.wrong / totalS : 0;
   const isWeak    = totalS > 0 && wrongRate > 0.4;
   const pct       = Math.round(qIndex / queue.length * 100);
+
+  // ── 例文モード（穴埋め4択） ──
+  if (quizMode === "example") {
+    if (queue.length === 0) {
+      content.innerHTML = `
+        <div class="empty-card">
+          <div class="icon">📖</div>
+          <p>例文つきの単語がありません。<br>スプシタブから最新データを読み込んでください（E列に例文が必要です）</p>
+        </div>`;
+      return;
+    }
+    // 例文がない単語はスキップ用の表示
+    if (!current.example) {
+      // 例文のない単語は次に飛ばす
+      if (qIndex + 1 < queue.length) {
+        state.qIndex++;
+        generateChoices();
+        renderQuiz();
+      } else {
+        state.quizDone = true;
+        renderQuiz();
+      }
+      return;
+    }
+
+    // 例文中の単語を空欄にする（大文字小文字・アクセント無視でマッチ）
+    const makeBlank = (sentence, word) => {
+      const normSentence = sentence.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const normWord     = word.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const idx = normSentence.indexOf(normWord);
+      if (idx === -1) return sentence.replace(word, "＿＿＿");
+      return sentence.slice(0, idx) + "＿＿＿" + sentence.slice(idx + word.length);
+    };
+    const blankSentence = makeBlank(current.example, current.es);
+
+    const choicesHtml = choices.map(c => {
+      let cls = "choice-btn";
+      if (showResult) {
+        if (String(c.id) === String(current.id))  cls += " correct";
+        else if (String(c.id) === String(selected)) cls += " wrong";
+      }
+      return `<button class="${cls}" data-id="${c.id}" ${showResult ? "disabled" : ""}>${c.es}</button>`;
+    }).join("");
+
+    const resultHtml = showResult ? (() => {
+      const ok = String(selected) === String(current.id);
+      return `
+        <div class="result-bar ${ok ? "ok" : "ng"}">
+          <p class="result-text">
+            ${ok
+              ? `<span class="ok-text">✓ 正解！ ${current.es}</span>`
+              : `<span class="ng-text">✗ 不正解　正解：${current.es}</span>`
+            }
+          </p>
+          <button class="next-btn" id="next-btn">次へ →</button>
+        </div>`;
+    })() : "";
+
+    content.innerHTML = `
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <span>問題 ${qIndex + 1} / ${queue.length}</span>
+          <span class="score">${state.streak >= 2 ? `<span class="streak-badge">🔥${state.streak}</span> ` : ""}✓ ${sessionRight}　✗ ${sessionWrong}</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" style="width:${pct}%"></div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <p class="question-hint">空欄に入る単語は？</p>
+        <p class="example-sentence">${showResult ? current.example : blankSentence}</p>
+        <p class="example-ja">${current.exampleJa || ""}</p>
+        <div class="question-badges">
+          <span class="badge badge-cat">${current.category}</span>
+          ${isWeak ? '<span class="badge badge-weak">🔥 苦手</span>' : ""}
+          <span class="badge badge-srs">Lv.${getSrs(current.id).level}</span>
+        </div>
+      </div>
+
+      <div class="choices-grid">${choicesHtml}</div>
+
+      ${resultHtml}
+    `;
+
+    document.querySelectorAll(".choice-btn").forEach(btn => {
+      btn.addEventListener("click", () => handleAnswer(btn.dataset.id));
+    });
+    const nextBtnEx = document.getElementById("next-btn");
+    if (nextBtnEx) nextBtnEx.addEventListener("click", nextQuestion);
+
+    // 回答後に例文全文を読み上げ
+    if (showResult) speakSpanish(current.example);
+
+    // 1〜4キー＋Enter
+    const onKeyExample = (e) => {
+      if (state.quizMode !== "example") return;
+      if (e.key === "Enter" && state.showResult) {
+        document.removeEventListener("keydown", onKeyExample);
+        nextQuestion();
+        return;
+      }
+      const idx = parseInt(e.key) - 1;
+      if (!state.showResult && idx >= 0 && idx < state.choices.length) {
+        document.removeEventListener("keydown", onKeyExample);
+        handleAnswer(state.choices[idx].id);
+      }
+    };
+    document.addEventListener("keydown", onKeyExample);
+    return;
+  }
 
   // ── スペルモード ──
   if (quizMode === "spell") {
@@ -857,6 +973,9 @@ async function importFromSheetsCsv() {
       es:       row[0].trim(),
       ja:       row[1].trim(),
       category: (row[2] ?? "その他").trim() || "その他",
+      pos:      (row[3] ?? "").trim(),
+      example:  (row[4] ?? "").trim(),
+      exampleJa: (row[5] ?? "").trim(),
     }));
 
     const mode = document.querySelector('input[name="import-mode"]:checked').value;
