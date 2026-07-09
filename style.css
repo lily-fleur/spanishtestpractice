@@ -735,3 +735,20 @@ main {
 .cat-btn.active .cat-count {
   background: rgba(255,255,255,0.25);
 }
+
+/* ── SRSバッジ ── */
+.badge-srs {
+  background: #16324a;
+  color: #5dade2;
+}
+.due-badge {
+  display: inline-block;
+  background: #e67e22;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 6px;
+  margin-left: 4px;
+  animation: streakPop 0.3s ease;
+}

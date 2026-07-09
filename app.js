@@ -51,6 +51,7 @@ function loadData() {
       const data = JSON.parse(raw);
       if (data.words) state.words = data.words;
       if (data.stats) state.stats = data.stats;
+      if (data.srs)   state.srs   = data.srs;
     }
   } catch (_) {}
 }
@@ -60,6 +61,7 @@ function saveData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       words: state.words,
       stats: state.stats,
+      srs:   state.srs ?? {},
     }));
   } catch (_) {}
 }
@@ -112,16 +114,78 @@ function getWrongRate(wordId) {
 }
 
 // ── クイズロジック ────────────────────────────────────────────
+// ── SRS（間隔反復）────────────────────────────────────────────
+// レベル別の復習間隔（ミリ秒）
+const SRS_INTERVALS = [
+  10 * 60 * 1000,           // Lv0→1: 10分
+  24 * 60 * 60 * 1000,      // Lv1→2: 1日
+  3  * 24 * 60 * 60 * 1000, // Lv2→3: 3日
+  7  * 24 * 60 * 60 * 1000, // Lv3→4: 1週間
+  14 * 24 * 60 * 60 * 1000, // Lv4→5: 2週間
+  30 * 24 * 60 * 60 * 1000, // Lv5:    1ヶ月
+];
+const SRS_MAX_LEVEL = 5;
+
+function getSrs(wordId) {
+  if (!state.srs) state.srs = {};
+  return state.srs[String(wordId)] ?? { level: 0, nextReview: 0 };
+}
+
+function updateSrs(wordId, isCorrect) {
+  if (!state.srs) state.srs = {};
+  const cur = getSrs(wordId);
+  if (isCorrect) {
+    const newLevel = Math.min(cur.level + 1, SRS_MAX_LEVEL);
+    state.srs[String(wordId)] = {
+      level: newLevel,
+      nextReview: Date.now() + SRS_INTERVALS[Math.min(newLevel, SRS_INTERVALS.length - 1)],
+    };
+  } else {
+    state.srs[String(wordId)] = { level: 0, nextReview: Date.now() };
+  }
+}
+
+// 復習期日が来ている単語の数
+function countDueWords(filterCat) {
+  const pool = filterCat === "全て"
+    ? state.words
+    : state.words.filter(w => w.category === filterCat);
+  const now = Date.now();
+  return pool.filter(w => {
+    const s = getSrs(w.id);
+    return s.level > 0 && s.nextReview <= now;
+  }).length;
+}
+
 function buildQueue(filterCat) {
   let pool = filterCat === "全て"
     ? state.words
     : state.words.filter(w => w.category === filterCat);
   if (pool.length === 0) return [];
 
-  const scored = pool.map(w => ({ ...w, wrongRate: getWrongRate(w.id) }));
-  scored.sort((a, b) => b.wrongRate - a.wrongRate);
-  const repeated = scored.flatMap((w, i) =>
-    (i < 3 && w.wrongRate > 0.4) ? [w, w] : [w]
+  const now = Date.now();
+
+  // SRS分類：復習期日到来 / 新規（未学習） / 学習済み（期日前）
+  const due      = [];  // 復習期日が来た単語（最優先）
+  const fresh    = [];  // まだ一度も正解していない単語
+  const learning = [];  // 学習済みで期日前の単語
+
+  for (const w of pool) {
+    const s = getSrs(w.id);
+    if (s.level === 0)            fresh.push(w);
+    else if (s.nextReview <= now) due.push(w);
+    else                          learning.push(w);
+  }
+
+  // 苦手単語（間違い率が高い）はさらに優先度UP
+  const sortByWrong = arr => arr.sort((a, b) => getWrongRate(b.id) - getWrongRate(a.id));
+  sortByWrong(due);
+  sortByWrong(fresh);
+
+  // 期日到来 → 新規 → 学習済みの順で並べ、苦手はダブりで強化
+  const ordered = [...due, ...fresh, ...shuffle(learning)];
+  const repeated = ordered.flatMap((w, i) =>
+    (i < 3 && getWrongRate(w.id) > 0.4) ? [w, w] : [w]
   );
   return shuffle(repeated);
 }
@@ -177,6 +241,7 @@ function handleAnswer(choiceId) {
     correct: prev.correct + (isCorrect ? 1 : 0),
     wrong:   prev.wrong   + (isCorrect ? 0 : 1),
   };
+  updateSrs(current.id, isCorrect);
   saveData();
   renderQuiz();
 }
@@ -215,6 +280,7 @@ function submitSpell() {
     correct: prev.correct + (isCorrect ? 1 : 0),
     wrong:   prev.wrong   + (isCorrect ? 0 : 1),
   };
+  updateSrs(current.id, isCorrect);
   saveData();
   renderQuiz();
 }
@@ -309,7 +375,9 @@ function renderQuiz() {
   const cats = ["全て", ...Array.from(new Set(words.map(w => w.category)))];
   const filterHtml = cats.map(c => {
     const count = c === "全て" ? words.length : words.filter(w => w.category === c).length;
-    return `<button class="cat-btn${c === quizFilter ? " active" : ""}" data-cat="${c}">${c} <span class="cat-count">${count}</span></button>`;
+    const due   = countDueWords(c);
+    const dueBadge = due > 0 ? `<span class="due-badge">${due}</span>` : "";
+    return `<button class="cat-btn${c === quizFilter ? " active" : ""}" data-cat="${c}">${c} <span class="cat-count">${count}</span>${dueBadge}</button>`;
   }).join("");
   document.getElementById("quiz-filters").innerHTML = filterHtml;
   document.querySelectorAll(".cat-btn").forEach(btn => {
@@ -422,6 +490,7 @@ function renderQuiz() {
         <div class="question-badges">
           <span class="badge badge-cat">${current.category}</span>
           ${isWeak ? '<span class="badge badge-weak">🔥 苦手</span>' : ""}
+          <span class="badge badge-srs">Lv.${getSrs(current.id).level}</span>
         </div>
       </div>
       <form id="spell-form" class="spell-input-wrap" action="javascript:void(0)">
@@ -532,6 +601,7 @@ function renderQuiz() {
       <div class="question-badges">
         <span class="badge badge-cat">${current.category}</span>
         ${isWeak ? '<span class="badge badge-weak">🔥 苦手</span>' : ""}
+        <span class="badge badge-srs">Lv.${getSrs(current.id).level}</span>
         ${speakBtnHtml}
       </div>
     </div>

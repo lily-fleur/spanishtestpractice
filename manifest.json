@@ -1,0 +1,22 @@
+{
+  "name": "EspañolQuiz - スペイン語単語マスター",
+  "short_name": "EspañolQuiz",
+  "description": "スペイン語の単語学習アプリ。4択・スペルテスト・間隔反復学習に対応。",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1923",
+  "theme_color": "#1a252f",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
