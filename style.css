@@ -793,3 +793,34 @@ main {
   border-color: #C0392B;
   color: #fff;
 }
+
+/* ── DELEレベル＋ジャンルフィルター ── */
+.level-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+.level-row .cat-btn {
+  flex: 1;
+  text-align: center;
+}
+.genre-select {
+  width: 100%;
+  background: #1e2d3d;
+  border: 1.5px solid #3a5068;
+  border-radius: 10px;
+  color: #c8dce8;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23F39C12' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.genre-select:focus { border-color: #F39C12; }
+.genre-select option { background: #1e2d3d; }
