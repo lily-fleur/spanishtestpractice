@@ -768,3 +768,28 @@ main {
   margin-top: 6px;
   line-height: 1.5;
 }
+
+/* ── ソース切り替え（マイ単語/DELE） ── */
+.source-switch {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.source-btn {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1.5px solid #3a5068;
+  background: rgba(15,25,35,0.5);
+  color: #7f8c8d;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+}
+.source-btn.active {
+  background: #C0392B;
+  border-color: #C0392B;
+  color: #fff;
+}
