@@ -17,6 +17,9 @@ let state = {
   stats: {},           // { [wordId]: { correct, wrong } }
   tab: "quiz",
   quizFilter: "全て",
+  source: "my",        // my | dele
+  _myWords: null,
+  _deleWords: [],
   quizMode: "choice",  // choice | spell | example
   quizDir:  "es-ja",   // es-ja | ja-es
 
@@ -52,14 +55,24 @@ function loadData() {
       if (data.words) state.words = data.words;
       if (data.stats) state.stats = data.stats;
       if (data.srs)   state.srs   = data.srs;
+      state._deleWords = data.wordsDele ?? [];
+      state.source     = data.source ?? "my";
+      state._myWords   = data.words ?? state.words;
+      // 現在ソースのビューをセット
+      state.words = state.source === "my" ? state._myWords : state._deleWords;
     }
   } catch (_) {}
 }
 
 function saveData() {
   try {
+    // 現在編集中の単語を実体に同期
+    if (state.source === "my") state._myWords   = state.words;
+    else                       state._deleWords = state.words;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      words: state.words,
+      words:     state._myWords ?? state.words,
+      wordsDele: state._deleWords ?? [],
+      source:    state.source,
       stats: state.stats,
       srs:   state.srs ?? {},
     }));
@@ -369,6 +382,36 @@ function startEdit(id) {
 
 function updateWordCount() {
   document.getElementById("word-count-num").textContent = state.words.length;
+}
+
+/* ── ソース切り替え（マイ単語 / DELE） ── */
+function switchSource(src) {
+  if (src === state.source) return;
+  // 現在の単語を退避
+  if (state.source === "my") state._myWords   = state.words;
+  else                       state._deleWords = state.words;
+  state.source = src;
+  state.words = src === "my" ? (state._myWords ?? []) : (state._deleWords ?? []);
+  state.quizFilter = "全て";
+  saveData();
+  updateWordCount();
+  updateSourceButtons();
+
+  // スプシのシート名デフォルトを切り替え
+  const sheetNameInput = document.getElementById("sheets-sheetname");
+  if (sheetNameInput) sheetNameInput.value = src === "my" ? "Sheet1" : "DELE";
+
+  // 現在のタブを再描画
+  if (state.tab === "quiz")      { startQuiz(); renderQuiz(); }
+  else if (state.tab === "words") renderWords();
+  else if (state.tab === "stats") renderStats();
+}
+
+function updateSourceButtons() {
+  const myBtn   = document.getElementById("source-my");
+  const deleBtn = document.getElementById("source-dele");
+  if (myBtn)   myBtn.classList.toggle("active", state.source === "my");
+  if (deleBtn) deleBtn.classList.toggle("active", state.source === "dele");
 }
 
 /* ── タブ切り替え ── */
@@ -940,6 +983,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // グローバルキーハンドラ（1個だけ）
   document.addEventListener("keydown", globalQuizKeyHandler);
+
+  // ソース切り替えボタン
+  document.querySelectorAll(".source-btn").forEach(btn => {
+    btn.addEventListener("click", () => switchSource(btn.dataset.source));
+  });
+  updateSourceButtons();
 
   // クイズ方向切替ボタン
   document.querySelectorAll(".dir-btn").forEach(btn => {
