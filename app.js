@@ -17,6 +17,7 @@ let state = {
   stats: {},           // { [wordId]: { correct, wrong } }
   tab: "quiz",
   quizFilter: "全て",
+  quizLevel: "全て",   // DELEソース時のレベルフィルター
   source: "my",        // my | dele
   _myWords: null,
   _deleWords: [],
@@ -200,9 +201,14 @@ function countDueWords(filterCat) {
 }
 
 function buildQueue(filterCat) {
-  let pool = filterCat === "全て"
-    ? state.words
-    : state.words.filter(w => w.category === filterCat);
+  let pool = state.words;
+  if (state.source === "dele") {
+    // DELE: レベル（category列）＋ジャンル（genre列）の2段フィルター
+    if (state.quizLevel !== "全て") pool = pool.filter(w => w.category === state.quizLevel);
+    if (filterCat !== "全て")       pool = pool.filter(w => (w.genre ?? "") === filterCat);
+  } else {
+    if (filterCat !== "全て") pool = pool.filter(w => w.category === filterCat);
+  }
   if (pool.length === 0) return [];
 
   const now = Date.now();
@@ -393,6 +399,7 @@ function switchSource(src) {
   state.source = src;
   state.words = src === "my" ? (state._myWords ?? []) : (state._deleWords ?? []);
   state.quizFilter = "全て";
+  state.quizLevel  = "全て";
   saveData();
   updateWordCount();
   updateSourceButtons();
@@ -453,22 +460,59 @@ function renderQuiz() {
   document.getElementById("quiz-dir-es-ja").classList.toggle("active", quizDir === "es-ja");
   document.getElementById("quiz-dir-ja-es").classList.toggle("active", quizDir === "ja-es");
 
-  // カテゴリフィルター（単語数つき）
-  const cats = ["全て", ...Array.from(new Set(words.map(w => w.category)))];
-  const filterHtml = cats.map(c => {
-    const count = c === "全て" ? words.length : words.filter(w => w.category === c).length;
-    const due   = countDueWords(c);
-    const dueBadge = due > 0 ? `<span class="due-badge">${due}</span>` : "";
-    return `<button class="cat-btn${c === quizFilter ? " active" : ""}" data-cat="${c}">${c} <span class="cat-count">${count}</span>${dueBadge}</button>`;
-  }).join("");
-  document.getElementById("quiz-filters").innerHTML = filterHtml;
-  document.querySelectorAll(".cat-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      state.quizFilter = btn.dataset.cat;
+  // フィルターUI（ソース別）
+  const filterWrap = document.getElementById("quiz-filters");
+  if (state.source === "dele") {
+    // DELE：レベルボタン＋ジャンルプルダウン
+    const levels = ["全て", ...Array.from(new Set(words.map(w => w.category))).sort()];
+    const levelPool = state.quizLevel === "全て" ? words : words.filter(w => w.category === state.quizLevel);
+    const genres = ["全て", ...Array.from(new Set(levelPool.map(w => w.genre).filter(Boolean)))];
+
+    const levelHtml = levels.map(l => {
+      const count = l === "全て" ? words.length : words.filter(w => w.category === l).length;
+      return `<button class="cat-btn${l === state.quizLevel ? " active" : ""}" data-level="${l}">${l} <span class="cat-count">${count}</span></button>`;
+    }).join("");
+
+    const genreOptions = genres.map(g => {
+      const count = g === "全て" ? levelPool.length : levelPool.filter(w => w.genre === g).length;
+      return `<option value="${g}"${g === quizFilter ? " selected" : ""}>${g}（${count}語）</option>`;
+    }).join("");
+
+    filterWrap.innerHTML = `
+      <div class="level-row">${levelHtml}</div>
+      <select id="genre-select" class="genre-select">${genreOptions}</select>`;
+
+    filterWrap.querySelectorAll("[data-level]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.quizLevel = btn.dataset.level;
+        state.quizFilter = "全て"; // レベル変更時はジャンルをリセット
+        startQuiz();
+        renderQuiz();
+      });
+    });
+    document.getElementById("genre-select").addEventListener("change", (e) => {
+      state.quizFilter = e.target.value;
       startQuiz();
       renderQuiz();
     });
-  });
+  } else {
+    // マイ単語：従来のカテゴリボタン
+    const cats = ["全て", ...Array.from(new Set(words.map(w => w.category)))];
+    const filterHtml = cats.map(c => {
+      const count = c === "全て" ? words.length : words.filter(w => w.category === c).length;
+      const due   = countDueWords(c);
+      const dueBadge = due > 0 ? `<span class="due-badge">${due}</span>` : "";
+      return `<button class="cat-btn${c === quizFilter ? " active" : ""}" data-cat="${c}">${c} <span class="cat-count">${count}</span>${dueBadge}</button>`;
+    }).join("");
+    filterWrap.innerHTML = filterHtml;
+    filterWrap.querySelectorAll(".cat-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.quizFilter = btn.dataset.cat;
+        startQuiz();
+        renderQuiz();
+      });
+    });
+  }
 
   const content = document.getElementById("quiz-content");
 
@@ -1047,6 +1091,7 @@ async function importFromSheetsCsv() {
       pos:      (row[3] ?? "").trim(),
       example:  (row[4] ?? "").trim(),
       exampleJa: (row[5] ?? "").trim(),
+      genre:    (row[6] ?? "").trim(),
     }));
 
     const mode = document.querySelector('input[name="import-mode"]:checked').value;
