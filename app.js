@@ -18,6 +18,8 @@ let state = {
   tab: "quiz",
   quizFilter: "全て",
   quizLevel: "全て",   // DELEソース時のレベルフィルター
+  quizPos: "全て",     // 品詞フィルター
+  quizPos: "全て",     // 品詞フィルター
   sessionSize: 20,     // 1セッションの出題数（"all"で全部）
   cycle: {},           // { filterKey: [出題済みID] } セット進行管理
   soundOn: true,       // 音声オンオフ
@@ -147,7 +149,7 @@ function masteryDonut(pool) {
 
 // ── セット進行（サイクル）管理 ────────────────────────────────
 function cycleKey() {
-  return [state.source, state.quizLevel ?? "全て", state.quizFilter].join("|");
+  return [state.source, state.quizLevel ?? "全て", state.quizFilter, state.quizPos ?? "全て"].join("|");
 }
 
 function getCyclePool() {
@@ -159,6 +161,7 @@ function getCyclePool() {
   } else {
     if (state.quizFilter !== "全て") pool = pool.filter(w => w.category === state.quizFilter);
   }
+  if (state.quizPos !== "全て") pool = pool.filter(w => (w.pos ?? "") === state.quizPos);
   return pool;
 }
 
@@ -500,6 +503,8 @@ function switchSource(src) {
   state.words = src === "my" ? (state._myWords ?? []) : (state._deleWords ?? []);
   state.quizFilter = "全て";
   state.quizLevel  = "全て";
+  state.quizPos    = "全て";
+  state.quizPos    = "全て";
   saveData();
   updateWordCount();
   updateSourceButtons();
@@ -575,6 +580,8 @@ function renderQuiz() {
     } else {
       filterLabel = quizFilter;
     }
+    if (state.quizPos !== "全て") filterLabel += `・${state.quizPos}`;
+    if (state.quizPos !== "全て") filterLabel += `・${state.quizPos}`;
     const parts = quizMode === "example"
       ? [modeLabel, sizeLabel, filterLabel]
       : [dirLabel, modeLabel, sizeLabel, filterLabel];
@@ -601,20 +608,38 @@ function renderQuiz() {
       return `<option value="${g}"${g === quizFilter ? " selected" : ""}>${g}（${count}語）</option>`;
     }).join("");
 
+    // 品詞プルダウン
+    const posPool = state.quizFilter === "全て" ? levelPool : levelPool.filter(w => w.genre === state.quizFilter);
+    const posList = ["全て", ...Array.from(new Set(posPool.map(w => w.pos).filter(Boolean)))];
+    const posOptions = posList.map(p => {
+      const count = p === "全て" ? posPool.length : posPool.filter(w => w.pos === p).length;
+      return `<option value="${p}"${p === state.quizPos ? " selected" : ""}>${p === "全て" ? "品詞: 全て" : p}（${count}語）</option>`;
+    }).join("");
+
     filterWrap.innerHTML = `
       <div class="level-row">${levelHtml}</div>
-      <select id="genre-select" class="genre-select">${genreOptions}</select>`;
+      <div class="select-row">
+        <select id="genre-select" class="genre-select">${genreOptions}</select>
+        <select id="pos-select" class="genre-select">${posOptions}</select>
+      </div>`;
 
     filterWrap.querySelectorAll("[data-level]").forEach(btn => {
       btn.addEventListener("click", () => {
         state.quizLevel = btn.dataset.level;
         state.quizFilter = "全て"; // レベル変更時はジャンルをリセット
+        state.quizPos = "全て";
         startQuiz();
         renderQuiz();
       });
     });
     document.getElementById("genre-select").addEventListener("change", (e) => {
       state.quizFilter = e.target.value;
+      state.quizPos = "全て";
+      startQuiz();
+      renderQuiz();
+    });
+    document.getElementById("pos-select").addEventListener("change", (e) => {
+      state.quizPos = e.target.value;
       startQuiz();
       renderQuiz();
     });
@@ -627,14 +652,33 @@ function renderQuiz() {
       const dueBadge = due > 0 ? `<span class="due-badge">${due}</span>` : "";
       return `<button class="cat-btn${c === quizFilter ? " active" : ""}" data-cat="${c}">${c} <span class="cat-count">${count}</span>${dueBadge}</button>`;
     }).join("");
-    filterWrap.innerHTML = filterHtml;
+    // 品詞プルダウン（品詞データがある場合のみ）
+    const catPool = quizFilter === "全て" ? words : words.filter(w => w.category === quizFilter);
+    const posList = ["全て", ...Array.from(new Set(catPool.map(w => w.pos).filter(Boolean)))];
+    const posHtml = posList.length > 1
+      ? `<select id="pos-select" class="genre-select" style="margin-top:6px">${posList.map(p => {
+          const count = p === "全て" ? catPool.length : catPool.filter(w => w.pos === p).length;
+          return `<option value="${p}"${p === state.quizPos ? " selected" : ""}>${p === "全て" ? "品詞: 全て" : p}（${count}語）</option>`;
+        }).join("")}</select>`
+      : "";
+
+    filterWrap.innerHTML = filterHtml + posHtml;
     filterWrap.querySelectorAll(".cat-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         state.quizFilter = btn.dataset.cat;
+        state.quizPos = "全て";
         startQuiz();
         renderQuiz();
       });
     });
+    const posSelect = document.getElementById("pos-select");
+    if (posSelect) {
+      posSelect.addEventListener("change", (e) => {
+        state.quizPos = e.target.value;
+        startQuiz();
+        renderQuiz();
+      });
+    }
   }
 
   const content = document.getElementById("quiz-content");
@@ -789,7 +833,7 @@ function renderQuiz() {
           </p>
           <button class="next-btn" id="next-btn">次へ →</button>
         </div>`;
-    })() : "";
+    })() : '<div class="result-bar hidden-placeholder"></div>';
 
     content.innerHTML = `
       <div class="progress-wrap">
@@ -959,7 +1003,7 @@ function renderQuiz() {
         </p>
         <button class="next-btn" id="next-btn">次へ →</button>
       </div>`;
-  })() : "";
+  })() : '<div class="result-bar hidden-placeholder"></div>';
 
   const speakBtnHtml = quizDir === "es-ja"
     ? '<button class="speak-btn" id="speak-btn" title="もう一度聞く">🔊</button>'
@@ -1003,8 +1047,8 @@ function renderQuiz() {
   // es-jaのときだけ自動読み上げ
   if (!showResult && quizDir === "es-ja") speakSpanish(current.es);
 
-  // 数字キーのヒントを表示
-  if (!showResult) {
+  // 数字キーのヒントを表示（回答後も維持してレイアウトを固定）
+  {
     const grid = document.querySelector(".choices-grid");
     if (grid) {
       grid.querySelectorAll(".choice-btn").forEach((btn, i) => {
