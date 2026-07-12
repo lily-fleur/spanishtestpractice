@@ -1382,3 +1382,38 @@ main { padding: 8px 16px 40px; }
 .donut-legend { font-size: 10px; line-height: 1.8; }
 .done-actions { gap: 7px; }
 .review-btn, .retry-btn { padding: 10px 16px; font-size: 13px; }
+
+/* ═══ 選択肢をボタンらしく（カード型に変更） ═══ */
+.choices-grid {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.choice-btn {
+  border: 1px solid #2d3640;
+  border-radius: 12px;
+  padding: 13px 16px;
+  background: rgba(255,255,255,0.02);
+  transition: all 0.15s;
+}
+.choice-btn:hover:not(:disabled) {
+  border-color: #c98f4e;
+  background: rgba(201,143,78,0.06);
+}
+.choice-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  background: rgba(201,143,78,0.1);
+}
+.choice-btn.correct {
+  border-color: #7ddb9f;
+  background: rgba(125,219,159,0.08);
+}
+.choice-btn.wrong {
+  border-color: #e58a8a;
+  background: rgba(229,138,138,0.06);
+}
+.key-hint {
+  border: 1px solid #2d3640;
+  border-radius: 5px;
+  padding: 1px 7px;
+  font-size: 10px;
+}
