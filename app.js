@@ -1296,7 +1296,9 @@ async function importFromSheetsCsv() {
     }
     const text = await res.text();
     const rows = parseCSV(text);
-    const dataRows = rows.slice(1).filter(r => r[0] && r[1]);
+    const allDataRows = rows.slice(1);
+    const dataRows = allDataRows.filter(r => r[0] && r[0].trim() && r[1] && r[1].trim());
+    const skippedEmpty = allDataRows.length - dataRows.length;
 
     if (dataRows.length === 0) {
       setSheetStatus("error", "データが見つかりませんでした。A列・B列にデータがあるか確認してください");
@@ -1315,17 +1317,27 @@ async function importFromSheetsCsv() {
     }));
 
     const mode = document.querySelector('input[name="import-mode"]:checked').value;
+    let added = imported.length, skippedDup = 0;
     if (mode === "replace") {
       state.words = imported;
       state.stats = {};
     } else {
-      const existing = new Set(state.words.map(w => w.es));
-      state.words = [...state.words, ...imported.filter(w => !existing.has(w.es))];
+      // 重複判定：スペイン語＋日本語の組で判定（同じ単語でも意味が違えば別扱い）
+      const existing = new Set(state.words.map(w => w.es + "|" + w.ja));
+      const newWords = imported.filter(w => !existing.has(w.es + "|" + w.ja));
+      skippedDup = imported.length - newWords.length;
+      added = newWords.length;
+      state.words = [...state.words, ...newWords];
     }
 
     saveData();
     updateWordCount();
-    setSheetStatus("success", `✓ ${imported.length}語を読み込みました！`);
+    let msg = `✓ ${added}語を読み込みました！`;
+    const details = [];
+    if (skippedDup > 0)   details.push(`重複スキップ ${skippedDup}語`);
+    if (skippedEmpty > 0) details.push(`空欄スキップ ${skippedEmpty}行`);
+    if (details.length > 0) msg += `（${details.join("、")}）`;
+    setSheetStatus("success", msg);
     setTimeout(() => switchTab("quiz"), 1200);
 
   } catch (e) {
@@ -1341,25 +1353,27 @@ function setSheetStatus(type, msg) {
 }
 
 function parseCSV(text) {
+  // 引用符内の改行・カンマ・エスケープに対応した堅牢なパーサー
   const rows = [];
-  const lines = text.split(/\r?\n/);
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    const cols = [];
-    let cur = "", inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
-        else inQ = !inQ;
-      } else if (ch === ',' && !inQ) {
-        cols.push(cur); cur = "";
-      } else {
-        cur += ch;
-      }
+  let cols = [], cur = "", inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (inQ && text[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) {
+      cols.push(cur); cur = "";
+    } else if ((ch === '\n' || ch === '\r') && !inQ) {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      cols.push(cur); cur = "";
+      if (cols.some(c => c.trim() !== "")) rows.push(cols);
+      cols = [];
+    } else {
+      cur += ch;
     }
-    cols.push(cur);
-    rows.push(cols);
   }
+  // 最終行
+  cols.push(cur);
+  if (cols.some(c => c.trim() !== "")) rows.push(cols);
   return rows;
 }
