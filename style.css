@@ -1298,3 +1298,52 @@ header {
 .sheets-status.loading { background: transparent; border-color: #232a33; }
 .sheets-status.success { background: transparent; }
 .sheets-status.error   { background: transparent; }
+
+/* ═══ コンパクト調整（1画面に収める） ═══ */
+
+/* ヘッダーを薄く */
+header { padding: calc(8px + env(safe-area-inset-top)) 16px 0; }
+.header-top { margin-bottom: 8px; }
+.logo-icon { width: 30px; height: 30px; font-size: 15px; border-radius: 8px; }
+.logo-title { font-size: 16px; }
+.logo-sub { display: none; }
+.word-count-label { display: none; }
+.word-count-num { font-size: 14px; }
+.study-streak { font-size: 9px; }
+.source-switch { margin-bottom: 6px; }
+.source-btn { padding: 6px 0; font-size: 11px; }
+.tab-btn { padding: 7px 0; font-size: 12px; }
+
+/* メイン余白 */
+main { padding: 8px 16px 40px; }
+
+/* 設定トグル */
+.settings-toggle { padding: 7px 4px; margin-bottom: 6px; }
+
+/* プログレス */
+.progress-wrap { margin-bottom: 6px; }
+.progress-meta { font-size: 10px; margin-bottom: 4px; }
+
+/* 問題カード */
+.question-card { padding: 4px 4px 10px; margin-bottom: 4px; }
+.question-hint { font-size: 9px; margin-bottom: 6px; letter-spacing: 2px; }
+.question-word { font-size: 26px; }
+.example-sentence { font-size: 17px; }
+.example-ja { font-size: 11px; margin-top: 4px; }
+.question-badges { margin-top: 6px; }
+.badge { font-size: 9px; }
+.speak-btn { font-size: 12px; padding: 2px 8px; }
+
+/* 選択肢 */
+.choice-btn { padding: 11px 4px; font-size: 14px; }
+.key-hint { font-size: 10px; margin-right: 10px; }
+
+/* 結果バー */
+.result-bar { padding: 10px 4px; }
+.result-bar .result-text { font-size: 12px; }
+.next-btn { padding: 7px 14px; font-size: 11px; }
+
+/* スペル入力 */
+.spell-input { font-size: 16px; padding: 9px 4px; }
+.spell-input-wrap { margin-bottom: 8px; }
+.hidden-placeholder { height: 38px; }
