@@ -1347,3 +1347,38 @@ main { padding: 8px 16px 40px; }
 .spell-input { font-size: 16px; padding: 9px 4px; }
 .spell-input-wrap { margin-bottom: 8px; }
 .hidden-placeholder { height: 38px; }
+
+/* ═══ 完了画面コンパクト化＋品詞セレクト ═══ */
+
+/* 2つのセレクトを横並び */
+.select-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+.select-row .genre-select { flex: 1; min-width: 0; font-size: 11px; padding: 8px 26px 8px 10px; }
+
+/* 完了画面を1画面に収める */
+.done-card { padding: 14px 0 0; }
+.done-card .done-icon { font-size: 28px; margin-bottom: 4px; }
+.done-card h2 { font-size: 16px; margin-bottom: 2px; }
+.done-card .done-sub { font-size: 10px; margin-bottom: 8px; letter-spacing: 2px; }
+.done-perfect { font-size: 11px; margin-bottom: 8px; }
+.done-scores { gap: 8px; margin-bottom: 10px; }
+.done-score-box { padding: 8px 14px; border-radius: 8px; }
+.done-score-num { font-size: 18px; }
+.done-score-lbl { font-size: 9px; }
+.done-streak {
+  font-size: 11px;
+  padding: 7px;
+  margin-bottom: 8px;
+}
+.cycle-progress { padding: 9px 12px; margin-bottom: 8px; border-radius: 8px; }
+.cycle-progress-text { font-size: 11px; margin-bottom: 6px; }
+.donut-wrap { padding: 8px 12px; margin-bottom: 10px; gap: 12px; border-radius: 8px; }
+.donut { width: 72px; height: 72px; }
+.donut-pct { font-size: 22px; }
+.donut-lbl { font-size: 10px; }
+.donut-legend { font-size: 10px; line-height: 1.8; }
+.done-actions { gap: 7px; }
+.review-btn, .retry-btn { padding: 10px 16px; font-size: 13px; }
