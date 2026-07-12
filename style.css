@@ -824,3 +824,42 @@ main {
 }
 .genre-select:focus { border-color: #F39C12; }
 .genre-select option { background: #1e2d3d; }
+
+/* ── セッションサイズ選択 ── */
+.size-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.size-label {
+  font-size: 11px;
+  color: #7f8c8d;
+  font-weight: 600;
+  margin-right: 2px;
+  white-space: nowrap;
+}
+.size-btn {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1.5px solid #3a5068;
+  background: #1e2d3d;
+  color: #7f8c8d;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+}
+.size-btn.active {
+  background: #2C3E50;
+  border-color: #F39C12;
+  color: #F39C12;
+}
+
+/* 完了画面のセカンダリボタン */
+.retry-btn.secondary {
+  background: #2C3E50;
+  color: #c8dce8;
+}
