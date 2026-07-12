@@ -964,3 +964,337 @@ main {
   border-radius: 50%;
   margin-right: 6px;
 }
+
+/* ═══════════════════════════════════════════════
+   エディトリアルテーマ（C案）— 末尾上書き
+   ═══════════════════════════════════════════════ */
+
+html, body { background: #101418; }
+#app { background: #101418; }
+
+/* ── ヘッダー：フラット＋下線 ── */
+header {
+  background: #101418;
+  border-bottom: 1px solid #232a33;
+}
+.logo-icon {
+  background: transparent;
+  border: 1px solid #232a33;
+  border-radius: 10px;
+}
+.logo-title { color: #f5f2ec; letter-spacing: 2px; }
+.logo-sub {
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #5c6570;
+}
+.word-count-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #5c6570;
+}
+.word-count-num { color: #c98f4e; }
+.study-streak { color: #c98f4e; }
+
+/* ── タブ ── */
+.tab-btn {
+  color: #5c6570;
+  letter-spacing: 1px;
+}
+.tab-btn.active {
+  color: #f5f2ec;
+  border-bottom-color: #c98f4e;
+}
+
+/* ── ボタン類：ミニマル ── */
+.source-btn, .dir-btn, .mode-btn, .size-btn {
+  background: transparent;
+  border: 1px solid #232a33;
+  color: #8a939e;
+  border-radius: 8px;
+}
+.source-btn.active {
+  background: transparent;
+  border-color: #c98f4e;
+  color: #c98f4e;
+}
+.dir-btn.active, .mode-btn.active, .size-btn.active {
+  background: transparent;
+  border-color: #c98f4e;
+  color: #c98f4e;
+}
+.settings-toggle {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #232a33;
+  border-radius: 0;
+  color: #8a939e;
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 10px 4px;
+}
+.settings-arrow { color: #c98f4e; }
+.size-label {
+  color: #5c6570;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-size: 9px;
+}
+
+.cat-btn {
+  background: transparent;
+  border: 1px solid #232a33;
+  color: #8a939e;
+}
+.cat-btn.active {
+  background: transparent;
+  border-color: #c98f4e;
+  color: #c98f4e;
+}
+.cat-count {
+  background: transparent;
+  border: none;
+  color: #5c6570;
+}
+.cat-btn.active .cat-count { background: transparent; color: #c98f4e; }
+.due-badge { background: #c98f4e; color: #101418; }
+.genre-select {
+  background: transparent;
+  border: 1px solid #232a33;
+  color: #c3cad2;
+}
+.genre-select:focus { border-color: #c98f4e; }
+.genre-select option { background: #1a2027; }
+
+/* ── プログレスバー ── */
+.progress-meta { color: #5c6570; letter-spacing: 1px; }
+.progress-meta .score { color: #c98f4e; }
+.progress-bar-bg { background: #232a33; height: 3px; }
+.progress-bar-fill { background: #c98f4e; }
+
+/* ── 問題カード：枠を捨てて余白と下線 ── */
+.question-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 4px 18px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #232a33;
+}
+.question-card::before { display: none; }
+.question-hint {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #5c6570;
+  margin-bottom: 12px;
+}
+.question-word {
+  font-size: 38px;
+  color: #f5f2ec;
+  line-height: 1.15;
+}
+.example-sentence { font-size: 21px; color: #f5f2ec; }
+.example-ja { color: #8a939e; }
+.badge {
+  background: transparent;
+  border: none;
+  padding: 2px 0;
+  margin-right: 10px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.badge-cat  { color: #c98f4e; }
+.badge-weak { color: #e58a8a; background: transparent; }
+.badge-srs  { color: #6a9fd8; background: transparent; }
+.speak-btn {
+  border: 1px solid #232a33;
+  color: #8a939e;
+  background: transparent;
+}
+.speak-btn:hover { border-color: #c98f4e; color: #c98f4e; }
+
+/* ── 選択肢：縦リスト＋下線区切り ── */
+.choices-grid {
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin-bottom: 12px;
+}
+.choice-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #232a33;
+  border-radius: 0;
+  color: #c3cad2;
+  text-align: left;
+  padding: 15px 4px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.choice-btn:hover:not(:disabled) {
+  background: rgba(201,143,78,0.05);
+  border-color: #232a33;
+  color: #f5f2ec;
+}
+.choice-btn:active:not(:disabled) { transform: none; }
+.choice-btn.correct {
+  background: transparent;
+  border-color: #232a33;
+  color: #7ddb9f;
+  transform: none;
+  box-shadow: none;
+  animation: none;
+}
+.choice-btn.correct::after {
+  content: '✓';
+  float: right;
+  color: #7ddb9f;
+  font-weight: 700;
+}
+.choice-btn.wrong {
+  background: transparent;
+  border-color: #232a33;
+  color: #e58a8a;
+  opacity: 1;
+}
+.choice-btn.wrong::after {
+  content: '✗';
+  float: right;
+  color: #e58a8a;
+}
+.key-hint {
+  background: transparent;
+  border: none;
+  color: #5c6570;
+  font-size: 11px;
+  margin-right: 12px;
+  padding: 0;
+}
+
+/* ── ストリーク・結果 ── */
+.streak-badge {
+  background: transparent;
+  border: 1px solid #c98f4e;
+  color: #c98f4e;
+  animation: none;
+}
+.result-bar { border-radius: 0; border: none; padding: 14px 4px; }
+.result-bar.ok { background: transparent; border-bottom: 2px solid #7ddb9f; }
+.result-bar.ng { background: transparent; border-bottom: 2px solid #e58a8a; }
+.result-bar .ok-text { color: #7ddb9f; }
+.result-bar .ng-text { color: #e58a8a; }
+.next-btn {
+  background: transparent;
+  border: 1px solid #c98f4e;
+  color: #c98f4e;
+  border-radius: 6px;
+}
+.hidden-placeholder { border: none !important; }
+
+/* ── スペル入力 ── */
+.spell-input {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid #232a33;
+  border-radius: 0;
+  font-size: 18px;
+  padding: 12px 4px;
+  color: #f5f2ec;
+}
+.spell-input:focus { border-color: #c98f4e; }
+.spell-check-btn {
+  background: transparent;
+  border: 1px solid #c98f4e;
+  color: #c98f4e;
+  border-radius: 6px;
+}
+
+/* ── 完了画面 ── */
+.done-card {
+  background: transparent;
+  border: none;
+  border-top: 2px solid #c98f4e;
+  border-radius: 0;
+  padding-top: 28px;
+}
+.done-card h2 { color: #f5f2ec; letter-spacing: 1px; }
+.done-sub { color: #5c6570; letter-spacing: 2px; }
+.done-perfect { color: #c98f4e; }
+.done-score-box {
+  background: transparent;
+  border: 1px solid #232a33;
+  border-radius: 10px;
+}
+.done-streak {
+  background: transparent;
+  border: none;
+  border-top: 1px solid #232a33;
+  border-bottom: 1px solid #232a33;
+  border-radius: 0;
+  color: #c98f4e;
+}
+.retry-btn {
+  background: transparent;
+  border: 1px solid #c98f4e;
+  color: #c98f4e;
+  border-radius: 8px;
+}
+.retry-btn.secondary {
+  background: transparent;
+  border-color: #232a33;
+  color: #8a939e;
+}
+.review-btn {
+  background: #c98f4e;
+  border: none;
+  color: #101418;
+  border-radius: 8px;
+}
+.cycle-progress { background: transparent; border: 1px solid #232a33; }
+.donut-wrap { background: transparent; border: 1px solid #232a33; }
+.donut-pct { fill: #f5f2ec; }
+.donut-legend { color: #8a939e; }
+
+/* ── 空カード・フォーム・単語帳・成績 ── */
+.empty-card { background: transparent; border-color: #232a33; color: #5c6570; }
+.form-card {
+  background: transparent;
+  border: 1px solid #232a33;
+}
+.form-title { color: #c98f4e; letter-spacing: 1px; }
+.form-input, .form-select {
+  background: transparent;
+  border: 1px solid #232a33;
+  color: #f5f2ec;
+}
+.form-input:focus, .form-select:focus { border-color: #c98f4e; }
+.form-select option { background: #1a2027; }
+.save-btn { background: #c98f4e; color: #101418; }
+.cancel-btn { background: transparent; border: 1px solid #232a33; color: #8a939e; }
+.word-item {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #232a33;
+  border-radius: 0;
+}
+.word-item.weak { border-bottom-color: #4a2626; }
+.word-es { color: #f5f2ec; }
+.edit-btn { border-color: #232a33; color: #8a939e; }
+.del-btn  { border-color: #3d2222; }
+.stats-summary {
+  background: transparent;
+  border: 1px solid #232a33;
+}
+.stats-title { color: #c98f4e; letter-spacing: 1px; }
+.stats-box { background: transparent; border: 1px solid #232a33; }
+.stats-rate-val { color: #c98f4e; }
+.section-title.yellow { color: #c98f4e; }
+.cat-stat-item { background: transparent; border: none; border-bottom: 1px solid #232a33; border-radius: 0; }
+.weak-item { background: transparent; border: none; border-bottom: 1px solid #3d2222; border-radius: 0; }
+.sheets-note { background: transparent; border-color: #232a33; }
+.sheets-status.loading { background: transparent; border-color: #232a33; }
+.sheets-status.success { background: transparent; }
+.sheets-status.error   { background: transparent; }
