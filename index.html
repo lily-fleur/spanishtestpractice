@@ -63,23 +63,29 @@
 
       <!-- クイズタブ -->
       <div id="tab-quiz" class="tab-panel active">
-        <div class="quiz-dir-switch">
-          <button id="quiz-dir-es-ja" class="dir-btn active" data-dir="es-ja">🇪🇸 → 🇯🇵</button>
-          <button id="quiz-dir-ja-es" class="dir-btn"        data-dir="ja-es">🇯🇵 → 🇪🇸</button>
+        <button id="settings-toggle" class="settings-toggle">
+          <span id="settings-summary">⚙️ 設定</span>
+          <span class="settings-arrow" id="settings-arrow">▼</span>
+        </button>
+        <div id="quiz-settings" class="quiz-settings collapsed">
+          <div class="quiz-dir-switch">
+            <button id="quiz-dir-es-ja" class="dir-btn active" data-dir="es-ja">🇪🇸 → 🇯🇵</button>
+            <button id="quiz-dir-ja-es" class="dir-btn"        data-dir="ja-es">🇯🇵 → 🇪🇸</button>
+          </div>
+          <div class="quiz-mode-switch">
+            <button id="quiz-mode-choice"  class="mode-btn active" data-mode="choice">4択</button>
+            <button id="quiz-mode-spell"   class="mode-btn"        data-mode="spell">スペル</button>
+            <button id="quiz-mode-example" class="mode-btn"        data-mode="example">📖 例文</button>
+          </div>
+          <div class="size-switch">
+            <span class="size-label">出題数</span>
+            <button class="size-btn"        data-size="10">10</button>
+            <button class="size-btn active" data-size="20">20</button>
+            <button class="size-btn"        data-size="50">50</button>
+            <button class="size-btn"        data-size="all">全部</button>
+          </div>
+          <div id="quiz-filters" class="cat-filters"></div>
         </div>
-        <div class="quiz-mode-switch">
-          <button id="quiz-mode-choice"  class="mode-btn active" data-mode="choice">4択</button>
-          <button id="quiz-mode-spell"   class="mode-btn"        data-mode="spell">スペル</button>
-          <button id="quiz-mode-example" class="mode-btn"        data-mode="example">📖 例文</button>
-        </div>
-        <div class="size-switch">
-          <span class="size-label">出題数</span>
-          <button class="size-btn"        data-size="10">10</button>
-          <button class="size-btn active" data-size="20">20</button>
-          <button class="size-btn"        data-size="50">50</button>
-          <button class="size-btn"        data-size="all">全部</button>
-        </div>
-        <div id="quiz-filters" class="cat-filters"></div>
         <div id="quiz-content"></div>
       </div>
 
