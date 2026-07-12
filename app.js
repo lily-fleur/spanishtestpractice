@@ -18,6 +18,7 @@ let state = {
   tab: "quiz",
   quizFilter: "全て",
   quizLevel: "全て",   // DELEソース時のレベルフィルター
+  sessionSize: 20,     // 1セッションの出題数（"all"で全部）
   source: "my",        // my | dele
   _myWords: null,
   _deleWords: [],
@@ -58,6 +59,7 @@ function loadData() {
       if (data.srs)   state.srs   = data.srs;
       state._deleWords = data.wordsDele ?? [];
       state.source     = data.source ?? "my";
+      state.sessionSize = data.sessionSize ?? 20;
       state._myWords   = data.words ?? state.words;
       // 現在ソースのビューをセット
       state.words = state.source === "my" ? state._myWords : state._deleWords;
@@ -74,6 +76,7 @@ function saveData() {
       words:     state._myWords ?? state.words,
       wordsDele: state._deleWords ?? [],
       source:    state.source,
+      sessionSize: state.sessionSize,
       stats: state.stats,
       srs:   state.srs ?? {},
     }));
@@ -246,6 +249,10 @@ function startQuiz(reviewQueue) {
   // 例文モードは例文がある単語のみ
   if (state.quizMode === "example") {
     state.queue = state.queue.filter(w => w.example);
+  }
+  // セッションサイズで区切る（復習モードは全部出す）
+  if (!state.reviewMode && state.sessionSize !== "all") {
+    state.queue = state.queue.slice(0, state.sessionSize);
   }
   state.qIndex       = 0;
   state.selected     = null;
@@ -457,6 +464,11 @@ function renderQuiz() {
   // 例文モードは方向の概念がないため方向スイッチを非表示
   const dirSwitch = document.querySelector(".quiz-dir-switch");
   if (dirSwitch) dirSwitch.style.display = quizMode === "example" ? "none" : "flex";
+
+  // セッションサイズボタンのactive状態
+  document.querySelectorAll(".size-btn").forEach(btn => {
+    btn.classList.toggle("active", String(state.sessionSize) === btn.dataset.size);
+  });
   document.getElementById("quiz-dir-es-ja").classList.toggle("active", quizDir === "es-ja");
   document.getElementById("quiz-dir-ja-es").classList.toggle("active", quizDir === "ja-es");
 
@@ -562,13 +574,21 @@ function renderQuiz() {
         <div class="done-streak">🔥 最高 ${state.maxStreak} 連続正解</div>
         <div class="done-actions">
           ${wrongCount > 0 ? `<button class="review-btn" id="review-btn">間違えた${wrongCount}問を復習</button>` : ""}
-          <button class="retry-btn" id="retry-btn">もう一度</button>
+          ${state.sessionSize !== "all" && !state.reviewMode ? '<button class="retry-btn" id="next-set-btn">次のセットへ →</button>' : ""}
+          <button class="retry-btn secondary" id="retry-btn">もう一度</button>
         </div>
       </div>`;
 
     document.getElementById("retry-btn").addEventListener("click", () => {
       startQuiz(); renderQuiz();
     });
+    const nextSetBtn = document.getElementById("next-set-btn");
+    if (nextSetBtn) {
+      nextSetBtn.addEventListener("click", () => {
+        // SRSにより回答済み単語は自動で後回しになるので、そのまま次セットを開始
+        startQuiz(); renderQuiz();
+      });
+    }
     const reviewBtn = document.getElementById("review-btn");
     if (reviewBtn) {
       reviewBtn.addEventListener("click", () => {
@@ -1033,6 +1053,16 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => switchSource(btn.dataset.source));
   });
   updateSourceButtons();
+
+  // セッションサイズボタン
+  document.querySelectorAll(".size-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.sessionSize = btn.dataset.size === "all" ? "all" : Number(btn.dataset.size);
+      saveData();
+      startQuiz();
+      renderQuiz();
+    });
+  });
 
   // クイズ方向切替ボタン
   document.querySelectorAll(".dir-btn").forEach(btn => {
