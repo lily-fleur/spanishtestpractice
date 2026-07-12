@@ -469,6 +469,24 @@ function renderQuiz() {
   document.querySelectorAll(".size-btn").forEach(btn => {
     btn.classList.toggle("active", String(state.sessionSize) === btn.dataset.size);
   });
+
+  // 設定サマリーの更新
+  const summaryEl = document.getElementById("settings-summary");
+  if (summaryEl) {
+    const dirLabel  = quizDir === "es-ja" ? "🇪🇸→🇯🇵" : "🇯🇵→🇪🇸";
+    const modeLabel = { choice: "4択", spell: "スペル", example: "📖例文" }[quizMode];
+    const sizeLabel = state.sessionSize === "all" ? "全部" : `${state.sessionSize}問`;
+    let filterLabel;
+    if (state.source === "dele") {
+      filterLabel = state.quizLevel + (quizFilter !== "全て" ? `・${quizFilter}` : "");
+    } else {
+      filterLabel = quizFilter;
+    }
+    const parts = quizMode === "example"
+      ? [modeLabel, sizeLabel, filterLabel]
+      : [dirLabel, modeLabel, sizeLabel, filterLabel];
+    summaryEl.textContent = "⚙️ " + parts.join("・");
+  }
   document.getElementById("quiz-dir-es-ja").classList.toggle("active", quizDir === "es-ja");
   document.getElementById("quiz-dir-ja-es").classList.toggle("active", quizDir === "ja-es");
 
@@ -1053,6 +1071,14 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => switchSource(btn.dataset.source));
   });
   updateSourceButtons();
+
+  // 設定パネルの開閉
+  document.getElementById("settings-toggle").addEventListener("click", () => {
+    const panel = document.getElementById("quiz-settings");
+    const arrow = document.getElementById("settings-arrow");
+    const isCollapsed = panel.classList.toggle("collapsed");
+    arrow.textContent = isCollapsed ? "▼" : "▲";
+  });
 
   // セッションサイズボタン
   document.querySelectorAll(".size-btn").forEach(btn => {
