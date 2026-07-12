@@ -19,6 +19,9 @@ let state = {
   quizFilter: "全て",
   quizLevel: "全て",   // DELEソース時のレベルフィルター
   sessionSize: 20,     // 1セッションの出題数（"all"で全部）
+  cycle: {},           // { filterKey: [出題済みID] } セット進行管理
+  soundOn: true,       // 音声オンオフ
+  study: { lastDate: null, streak: 0 },  // 連続学習日数
   source: "my",        // my | dele
   _myWords: null,
   _deleWords: [],
@@ -60,6 +63,9 @@ function loadData() {
       state._deleWords = data.wordsDele ?? [];
       state.source     = data.source ?? "my";
       state.sessionSize = data.sessionSize ?? 20;
+      state.cycle   = data.cycle ?? {};
+      state.soundOn = data.soundOn ?? true;
+      state.study   = data.study ?? { lastDate: null, streak: 0 };
       state._myWords   = data.words ?? state.words;
       // 現在ソースのビューをセット
       state.words = state.source === "my" ? state._myWords : state._deleWords;
@@ -77,6 +83,9 @@ function saveData() {
       wordsDele: state._deleWords ?? [],
       source:    state.source,
       sessionSize: state.sessionSize,
+      cycle:   state.cycle,
+      soundOn: state.soundOn,
+      study:   state.study,
       stats: state.stats,
       srs:   state.srs ?? {},
     }));
@@ -98,6 +107,75 @@ function checkSpelling(input, correct) {
 }
 
 
+
+// ── 習得度ドーナツチャート（SVG） ─────────────────────────────
+function masteryDonut(pool) {
+  let mastered = 0, learning = 0, fresh = 0;
+  for (const w of pool) {
+    const lv = getSrs(w.id).level;
+    if (lv >= 3)      mastered++;
+    else if (lv >= 1) learning++;
+    else              fresh++;
+  }
+  const total = pool.length || 1;
+  const C = 2 * Math.PI * 40; // 半径40の円周
+  const mLen = (mastered / total) * C;
+  const lLen = (learning / total) * C;
+  const fLen = (fresh    / total) * C;
+  const pctMastered = Math.round((mastered / total) * 100);
+
+  return `
+    <div class="donut-wrap">
+      <svg viewBox="0 0 100 100" class="donut">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#1e2d3d" stroke-width="12"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#27ae60" stroke-width="12"
+          stroke-dasharray="${mLen} ${C}" stroke-dashoffset="0"
+          transform="rotate(-90 50 50)" stroke-linecap="round"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#F39C12" stroke-width="12"
+          stroke-dasharray="${lLen} ${C}" stroke-dashoffset="${-mLen}"
+          transform="rotate(-90 50 50)"/>
+        <text x="50" y="47" text-anchor="middle" class="donut-pct">${pctMastered}%</text>
+        <text x="50" y="62" text-anchor="middle" class="donut-lbl">習得</text>
+      </svg>
+      <div class="donut-legend">
+        <div><span class="dot" style="background:#27ae60"></span>習得済み（Lv3+）: ${mastered}語</div>
+        <div><span class="dot" style="background:#F39C12"></span>学習中（Lv1-2）: ${learning}語</div>
+        <div><span class="dot" style="background:#3a5068"></span>未学習: ${fresh}語</div>
+      </div>
+    </div>`;
+}
+
+// ── セット進行（サイクル）管理 ────────────────────────────────
+function cycleKey() {
+  return [state.source, state.quizLevel ?? "全て", state.quizFilter].join("|");
+}
+
+function getCyclePool() {
+  // 現在のフィルターに該当する全単語
+  let pool = state.words;
+  if (state.source === "dele") {
+    if (state.quizLevel !== "全て")  pool = pool.filter(w => w.category === state.quizLevel);
+    if (state.quizFilter !== "全て") pool = pool.filter(w => (w.genre ?? "") === state.quizFilter);
+  } else {
+    if (state.quizFilter !== "全て") pool = pool.filter(w => w.category === state.quizFilter);
+  }
+  return pool;
+}
+
+// ── 連続学習日数 ──────────────────────────────────────────────
+function recordStudyDay() {
+  const today = new Date().toISOString().slice(0, 10);
+  if (state.study.lastDate === today) return;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  state.study.streak = state.study.lastDate === yesterday ? state.study.streak + 1 : 1;
+  state.study.lastDate = today;
+  updateStudyStreakDisplay();
+}
+
+function updateStudyStreakDisplay() {
+  const el = document.getElementById("study-streak");
+  if (el) el.textContent = state.study.streak > 0 ? `🔥 ${state.study.streak}日連続` : "";
+}
 
 // ── グローバルキーハンドラ（初期化時に1個だけ登録・累積なし）──
 function globalQuizKeyHandler(e) {
@@ -129,6 +207,7 @@ function globalQuizKeyHandler(e) {
 
 // ── 音声読み上げ ──────────────────────────────────────────────
 function speakSpanish(text) {
+  if (!state.soundOn) return;
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
@@ -204,15 +283,19 @@ function countDueWords(filterCat) {
 }
 
 function buildQueue(filterCat) {
-  let pool = state.words;
-  if (state.source === "dele") {
-    // DELE: レベル（category列）＋ジャンル（genre列）の2段フィルター
-    if (state.quizLevel !== "全て") pool = pool.filter(w => w.category === state.quizLevel);
-    if (filterCat !== "全て")       pool = pool.filter(w => (w.genre ?? "") === filterCat);
-  } else {
-    if (filterCat !== "全て") pool = pool.filter(w => w.category === filterCat);
-  }
+  let pool = getCyclePool();
   if (pool.length === 0) return [];
+
+  // サイクル管理：この周回で未出題の単語を優先
+  const key  = cycleKey();
+  const done = new Set(state.cycle[key] ?? []);
+  const remaining = pool.filter(w => !done.has(String(w.id)));
+  if (remaining.length === 0) {
+    // 一周完了 → リセットして最初から
+    state.cycle[key] = [];
+  } else {
+    pool = remaining;
+  }
 
   const now = Date.now();
 
@@ -298,6 +381,7 @@ function handleAnswer(choiceId) {
     wrong:   prev.wrong   + (isCorrect ? 0 : 1),
   };
   updateSrs(current.id, isCorrect);
+  recordStudyDay();
   saveData();
   renderQuiz();
 }
@@ -312,6 +396,14 @@ function nextQuestion() {
   state.spellChecked = false;
   if (state.qIndex + 1 >= state.queue.length) {
     state.quizDone = true;
+    // 復習モードでなければ、このセットの単語をサイクルに記録
+    if (!state.reviewMode) {
+      const key = cycleKey();
+      const done = new Set(state.cycle[key] ?? []);
+      state.queue.forEach(w => done.add(String(w.id)));
+      state.cycle[key] = [...done];
+      saveData();
+    }
   } else {
     state.qIndex++;
     generateChoices();
@@ -341,6 +433,7 @@ function submitSpell() {
     wrong:   prev.wrong   + (isCorrect ? 0 : 1),
   };
   updateSrs(current.id, isCorrect);
+  recordStudyDay();
   saveData();
   renderQuiz();
 }
@@ -589,7 +682,19 @@ function renderQuiz() {
             <div class="done-score-lbl">正答率</div>
           </div>
         </div>
-        <div class="done-streak">🔥 最高 ${state.maxStreak} 連続正解</div>
+        <div class="done-streak">🔥 最高 ${state.maxStreak} 連続正解${state.study.streak > 1 ? `　📅 ${state.study.streak}日連続学習中` : ""}</div>
+        ${(() => {
+          const pool = getCyclePool();
+          const key  = cycleKey();
+          const doneCount = (state.cycle[key] ?? []).length;
+          const cycleHtml = !state.reviewMode && pool.length > 0
+            ? `<div class="cycle-progress">
+                 <div class="cycle-progress-text">このフィルターの進捗　${doneCount} / ${pool.length}語${doneCount >= pool.length ? "　🎊 一周完了！" : ""}</div>
+                 <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${Math.min(100, doneCount / pool.length * 100)}%"></div></div>
+               </div>`
+            : "";
+          return cycleHtml + masteryDonut(pool);
+        })()}
         <div class="done-actions">
           ${wrongCount > 0 ? `<button class="review-btn" id="review-btn">間違えた${wrongCount}問を復習</button>` : ""}
           ${state.sessionSize !== "all" && !state.reviewMode ? '<button class="retry-btn" id="next-set-btn">次のセットへ →</button>' : ""}
@@ -1071,6 +1176,21 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => switchSource(btn.dataset.source));
   });
   updateSourceButtons();
+
+  // 音声トグル
+  const soundBtn = document.getElementById("sound-toggle");
+  const updateSoundBtn = () => {
+    soundBtn.textContent = state.soundOn ? "🔊 ON" : "🔇 OFF";
+    soundBtn.classList.toggle("active", state.soundOn);
+  };
+  soundBtn.addEventListener("click", () => {
+    state.soundOn = !state.soundOn;
+    if (!state.soundOn && window.speechSynthesis) window.speechSynthesis.cancel();
+    saveData();
+    updateSoundBtn();
+  });
+  updateSoundBtn();
+  updateStudyStreakDisplay();
 
   // 設定パネルの開閉
   document.getElementById("settings-toggle").addEventListener("click", () => {
